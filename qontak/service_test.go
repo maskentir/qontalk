@@ -1,0 +1,208 @@
+package qontak_test
+
+import (
+	"errors"
+	"testing"
+
+	qontak "github.com/maskentir/qontalk/qontak"
+	"github.com/stretchr/testify/assert"
+)
+
+type MockRequestStrategy struct {
+	PostResp   map[string]interface{}
+	PostError  error
+	PutResp    map[string]interface{}
+	PutError   error
+	AccessData map[string]interface{}
+}
+
+func (m *MockRequestStrategy) Post(url string, data map[string]interface{}) (map[string]interface{}, error) {
+	if m.PostError != nil {
+		return nil, m.PostError
+	}
+	return m.PostResp, nil
+}
+
+func (m *MockRequestStrategy) Put(url string, data map[string]interface{}) (map[string]interface{}, error) {
+	if m.PutError != nil {
+		return nil, m.PutError
+	}
+	return m.PutResp, nil
+}
+
+func TestQontakSDK(t *testing.T) {
+	tests := []struct {
+		name          string
+		strategy      qontak.RequestStrategy
+		operationFunc func(*qontak.QontakSDK) error
+		expectedErr   error
+	}{
+		{
+			name: "Authenticate_Success",
+			strategy: &MockRequestStrategy{
+				PostResp: map[string]interface{}{
+					"access_token": "mockAccessToken",
+				},
+			},
+			operationFunc: func(sdk *qontak.QontakSDK) error {
+				return sdk.Authenticate()
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "Authenticate_Failure",
+			strategy: &MockRequestStrategy{
+				PostError: errors.New("authentication failed"),
+			},
+			operationFunc: func(sdk *qontak.QontakSDK) error {
+				return sdk.Authenticate()
+			},
+			expectedErr: errors.New("authentication failed"),
+		},
+		{
+			name: "SendMessageInteractions_Success",
+			strategy: &MockRequestStrategy{
+				PutResp: map[string]interface{}{
+					"result": "success",
+				},
+			},
+			operationFunc: func(sdk *qontak.QontakSDK) error {
+				builder := qontak.SendMessageInteractions{
+					ReceiveMessageFromAgent:    true,
+					ReceiveMessageFromCustomer: true,
+					StatusMessage:              true,
+					URL:                        "https://example.com",
+				}
+				return sdk.SendMessageInteractions(builder)
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "SendMessageInteractions_Failure",
+			strategy: &MockRequestStrategy{
+				PutError: errors.New("send interactions failed"),
+			},
+			operationFunc: func(sdk *qontak.QontakSDK) error {
+				builder := qontak.SendMessageInteractions{
+					ReceiveMessageFromAgent:    true,
+					ReceiveMessageFromCustomer: true,
+					StatusMessage:              true,
+					URL:                        "https://example.com",
+				}
+				return sdk.SendMessageInteractions(builder)
+			},
+			expectedErr: errors.New("send interactions failed"),
+		},
+		{
+			name: "SendInteractiveMessage_Success",
+			strategy: &MockRequestStrategy{
+				PostResp: map[string]interface{}{
+					"result": "success",
+				},
+			},
+			operationFunc: func(sdk *qontak.QontakSDK) error {
+				builder := qontak.SendInteractiveMessage{
+					RoomID: "room123",
+					Type:   "type123",
+					Interactive: qontak.InteractiveData{
+						Header: &qontak.InteractiveHeader{
+							Format:   "json",
+							Text:     "Header Text",
+							Link:     "https://example.com",
+							Filename: "file.txt",
+						},
+						Body: "Body Text",
+						Buttons: []qontak.Button{
+							{ID: "btn1", Title: "Button 1"},
+							{ID: "btn2", Title: "Button 2"},
+						},
+					},
+				}
+				return sdk.SendInteractiveMessage(builder)
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "SendInteractiveMessage_Failure",
+			strategy: &MockRequestStrategy{
+				PostError: errors.New("send interactive message failed"),
+			},
+			operationFunc: func(sdk *qontak.QontakSDK) error {
+				builder := qontak.SendInteractiveMessage{
+					RoomID: "room123",
+					Type:   "type123",
+					Interactive: qontak.InteractiveData{
+						Header: &qontak.InteractiveHeader{
+							Format:   "json",
+							Text:     "Header Text",
+							Link:     "https://example.com",
+							Filename: "file.txt",
+						},
+						Body: "Body Text",
+						Buttons: []qontak.Button{
+							{ID: "btn1", Title: "Button 1"},
+							{ID: "btn2", Title: "Button 2"},
+						},
+					},
+				}
+				return sdk.SendInteractiveMessage(builder)
+			},
+			expectedErr: errors.New("send interactive message failed"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sdk := &qontak.QontakSDK{
+				BaseURL:         "https://service-chat.qontak.com/api/open/v1",
+				RequestStrategy: tt.strategy,
+			}
+
+			err := tt.operationFunc(sdk)
+			if tt.expectedErr != nil {
+				assert.Error(t, err)
+				assert.EqualError(t, err, tt.expectedErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestDefaultRequestStrategy(t *testing.T) {
+	tests := []struct {
+		name            string
+		strategy        *qontak.DefaultRequestStrategy
+		accessToken     string
+		expectedRequest qontak.RequestStrategy
+	}{
+		{
+			name: "StrategyWithAccessToken",
+			strategy: &qontak.DefaultRequestStrategy{
+				AccessToken: "mockAccessToken",
+			},
+			accessToken: "mockAccessToken",
+			expectedRequest: &qontak.DefaultRequestStrategy{
+				AccessToken: "mockAccessToken",
+			},
+		},
+		{
+			name: "StrategyWithoutAccessToken",
+			strategy: &qontak.DefaultRequestStrategy{
+				AccessToken: "",
+			},
+			accessToken: "",
+			expectedRequest: &qontak.DefaultRequestStrategy{
+				AccessToken: "",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := &qontak.DefaultRequestStrategy{}
+			request.AccessToken = tt.accessToken
+			assert.Equal(t, tt.expectedRequest, request)
+		})
+	}
+}

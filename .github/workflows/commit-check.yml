@@ -1,0 +1,28 @@
+name: Commit Message Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  commit_message_check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Check commit messages
+        run: |
+          # Fetch all the commit messages in the pull request
+          COMMIT_MESSAGES=$(git log --pretty=format:%s ${{ github.event.before }}..${{ github.sha }})
+
+          # Check each commit message against the convention (change this regex as needed)
+          for msg in $COMMIT_MESSAGES; do
+            if [[ ! "$msg" =~ ^(feat|fix|chore|docs|style|refactor|perf|test)(\(.+\))?: .+ ]]; then
+              echo "Invalid commit message format: $msg"
+              exit 1
+            fi
+          done

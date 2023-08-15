@@ -1,0 +1,45 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+
+# Compiled Go files
+*.exe
+*.test
+*.prof
+
+# Debug files
+debug
+trace
+
+# Dependency directories
+/vendor/
+/go.sum
+/go.sum.tmp
+
+# Output directories
+/bin/
+/dist/
+/release/
+
+# Ignore Mac-specific files
+.DS_Store
+
+# Ignore JetBrains IDE specific files
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Ignore Visual Studio Code specific files
+.vscode/
+
+# Ignore system-specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

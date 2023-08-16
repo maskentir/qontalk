@@ -4,30 +4,56 @@ import (
 	"errors"
 	"testing"
 
-	qontak "github.com/maskentir/qontalk/qontak"
 	"github.com/stretchr/testify/assert"
+
+	qontak "github.com/maskentir/qontalk/qontak"
 )
 
 type MockRequestStrategy struct {
-	PostResp   map[string]interface{}
-	PostError  error
-	PutResp    map[string]interface{}
-	PutError   error
-	AccessData map[string]interface{}
+	PostResp          map[string]interface{}
+	PostError         error
+	PutResp           map[string]interface{}
+	PutError          error
+	PutMultipartResp  map[string]interface{}
+	PutMultipartError error
 }
 
-func (m *MockRequestStrategy) Post(url string, data map[string]interface{}) (map[string]interface{}, error) {
+func (m *MockRequestStrategy) SetAccessToken(accessToken string) {
+	// No need to implement for mock
+}
+
+func (m *MockRequestStrategy) Post(
+	url string,
+	data map[string]interface{},
+) (map[string]interface{}, error) {
 	if m.PostError != nil {
 		return nil, m.PostError
 	}
 	return m.PostResp, nil
 }
 
-func (m *MockRequestStrategy) Put(url string, data map[string]interface{}) (map[string]interface{}, error) {
+func (m *MockRequestStrategy) Put(
+	url string,
+	data map[string]interface{},
+) (map[string]interface{}, error) {
 	if m.PutError != nil {
 		return nil, m.PutError
 	}
 	return m.PutResp, nil
+}
+
+func (m *MockRequestStrategy) PutMultipart(
+	url string,
+	formData map[string]interface{},
+) (map[string]interface{}, error) {
+	if m.PutMultipartError != nil {
+		return nil, m.PutMultipartError
+	}
+	return m.PutMultipartResp, nil
+}
+
+func NewMockRequestStrategy() *MockRequestStrategy {
+	return &MockRequestStrategy{}
 }
 
 func TestQontakSDK(t *testing.T) {
@@ -80,7 +106,7 @@ func TestQontakSDK(t *testing.T) {
 		{
 			name: "SendMessageInteractions_Failure",
 			strategy: &MockRequestStrategy{
-				PutError: errors.New("send interactions failed"),
+				PutMultipartError: errors.New("send interactions failed"),
 			},
 			operationFunc: func(sdk *qontak.QontakSDK) error {
 				builder := qontak.SendMessageInteractions{

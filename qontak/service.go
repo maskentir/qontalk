@@ -1,95 +1,96 @@
 // Package qontak provides a Go SDK for interacting with the Qontak API.
 //
-// Documentation
+// # Documentation
 //
 // This package offers a Go SDK for accessing the Qontak API. It provides a
 // convenient way to authenticate, send message interactions, and send
 // interactive messages using the Qontak SDK.
 //
-// Overview
+// # Overview
 //
 // The QontakSDKBuilder type is used to build instances of the QontakSDK,
 // which is a singleton for accessing the Qontak API. You can use the SDK
 // to authenticate, send message interactions, and send interactive messages.
 //
-// Authentication
+// # Authentication
 //
 // The QontakSDK can be authenticated using the Authenticate method, which
 // retrieves an access token for making authenticated API requests.
 //
-// Sending Message Interactions
+// # Sending Message Interactions
 //
 // You can use the SendMessageInteractions method to send message interactions,
 // including settings for receiving messages from agents or customers and setting
 // the status message and URL.
 //
-// Sending Interactive Messages
+// # Sending Interactive Messages
 //
 // The SendInteractiveMessage method allows you to send interactive messages
 // to a specified room ID, using interactive data.
 //
-// Customizing Request Strategy
+// # Customizing Request Strategy
 //
 // The QontakSDK uses a RequestStrategy interface for sending requests. The
 // DefaultRequestStrategy is the default implementation of this interface, but
 // you can also set a custom strategy using the SetRequestStrategy method.
 //
-// Examples
+// # Examples
 //
 // The following example demonstrates how to use the SDK to send a message
 // interaction and an interactive message:
 //
-//   // Create QontakSDK instance
-//   sdkBuilder := NewQontakSDKBuilder().Build()
+//	// Create QontakSDK instance
+//	sdkBuilder := NewQontakSDKBuilder().Build()
 //
-//   // Authenticate with credentials
-//   err := sdkBuilder.Authenticate()
-//   if err != nil {
-//       fmt.Println("Authentication failed:", err)
-//       return
-//   }
+//	// Authenticate with credentials
+//	err := sdkBuilder.Authenticate()
+//	if err != nil {
+//	    fmt.Println("Authentication failed:", err)
+//	    return
+//	}
 //
-//   // Create message interactions builder
-//   interactionsBuilder := NewSendMessageInteractionsBuilder().
-//       WithReceiveMessageFromAgent(true).
-//       WithReceiveMessageFromCustomer(true).
-//       WithStatusMessage(true).
-//       WithURL("https://example.com").
-//       Build()
+//	// Create message interactions builder
+//	interactionsBuilder := NewSendMessageInteractionsBuilder().
+//	    WithReceiveMessageFromAgent(true).
+//	    WithReceiveMessageFromCustomer(true).
+//	    WithStatusMessage(true).
+//	    WithURL("https://example.com").
+//	    Build()
 //
-//   // Send message interactions
-//   err = sdkBuilder.SendMessageInteractions(interactionsBuilder)
-//   if err != nil {
-//       fmt.Println("Failed to send interactions:", err)
-//   }
+//	// Send message interactions
+//	err = sdkBuilder.SendMessageInteractions(interactionsBuilder)
+//	if err != nil {
+//	    fmt.Println("Failed to send interactions:", err)
+//	}
 //
-//   // Create interactive message builder
-//   interactiveBuilder := NewSendInteractiveMessageBuilder().
-//       WithRoomID("room123").
-//       WithInteractiveData(InteractiveData{
-//           Body: "Hello, World!",
-//           Buttons: []Button{
-//               {ID: "btn1", Title: "Button 1"},
-//               {ID: "btn2", Title: "Button 2"},
-//           },
-//       }).
-//       Build()
+//	// Create interactive message builder
+//	interactiveBuilder := NewSendInteractiveMessageBuilder().
+//	    WithRoomID("room123").
+//	    WithInteractiveData(InteractiveData{
+//	        Body: "Hello, World!",
+//	        Buttons: []Button{
+//	            {ID: "btn1", Title: "Button 1"},
+//	            {ID: "btn2", Title: "Button 2"},
+//	        },
+//	    }).
+//	    Build()
 //
-//   // Send interactive message
-//   err = sdkBuilder.SendInteractiveMessage(interactiveBuilder)
-//   if err != nil {
-//       fmt.Println("Failed to send interactive message:", err)
-//   }
+//	// Send interactive message
+//	err = sdkBuilder.SendInteractiveMessage(interactiveBuilder)
+//	if err != nil {
+//	    fmt.Println("Failed to send interactive message:", err)
+//	}
 package qontak
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 )
 
-// QontakSDKBuilder is a builder to create QontakSDK
+// QontakSDKBuilder is a builder to create QontakSDK.
 type QontakSDKBuilder struct {
 	username     string
 	password     string
@@ -98,7 +99,7 @@ type QontakSDKBuilder struct {
 	clientSecret string
 }
 
-// NewQontakSDKBuilder creates a new instance of QontakSDKBuilder
+// NewQontakSDKBuilder creates a new instance of QontakSDKBuilder.
 func NewQontakSDKBuilder() *QontakSDKBuilder {
 	return &QontakSDKBuilder{}
 }
@@ -132,7 +133,7 @@ func (b *QontakSDKBuilder) Build() *QontakSDK {
 	}
 }
 
-// QontakSDK is a singleton for accessing Qontak API
+// QontakSDK is a singleton for accessing Qontak API.
 type QontakSDK struct {
 	BaseURL         string
 	Username        string
@@ -140,7 +141,6 @@ type QontakSDK struct {
 	GrantType       string
 	ClientID        string
 	ClientSecret    string
-	AccessToken     string
 	RequestStrategy RequestStrategy
 }
 
@@ -168,7 +168,7 @@ func (sdk *QontakSDK) Authenticate() error {
 		return fmt.Errorf("authentication failed")
 	}
 
-	sdk.AccessToken = accessToken
+	sdk.RequestStrategy.SetAccessToken(accessToken)
 	return nil
 }
 
@@ -186,7 +186,7 @@ func (sdk *QontakSDK) SendMessageInteractions(builder SendMessageInteractions) e
 		"url":                           builder.URL,
 	}
 
-	_, err := sdk.RequestStrategy.Put(interactionURL, data)
+	_, err := sdk.RequestStrategy.PutMultipart(interactionURL, data)
 	return err
 }
 
@@ -209,6 +209,7 @@ func (sdk *QontakSDK) SendInteractiveMessage(builder SendInteractiveMessage) err
 
 // RequestStrategy is a strategy interface for sending requests
 type RequestStrategy interface {
+	SetAccessToken(accessToken string)
 	// Post sends a POST request with the default strategy.
 	// Example:
 	// resp, err := drs.Post(url, data)
@@ -217,11 +218,23 @@ type RequestStrategy interface {
 	// Example:
 	// resp, err := drs.Put(url, data)
 	Put(url string, data map[string]interface{}) (map[string]interface{}, error)
+	// PutMultipart sends a PUT request with the default strategy.
+	// Example:
+	// resp, err := drs.PutMultipart(url, formData)
+	PutMultipart(
+		url string,
+		formData map[string]interface{},
+	) (map[string]interface{}, error)
 }
 
-// DefaultRequestStrategy is the default implementation of RequestStrategy
+// DefaultRequestStrategy is the default implementation of RequestStrategy.
 type DefaultRequestStrategy struct {
 	AccessToken string
+}
+
+// SetAccessToken sets the access token in DefaultRequestStrategy.
+func (drs *DefaultRequestStrategy) SetAccessToken(accessToken string) {
+	drs.AccessToken = accessToken
 }
 
 // Post sends a POST request with the default strategy.
@@ -275,6 +288,49 @@ func (drs *DefaultRequestStrategy) Put(
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if drs.AccessToken != "" {
+		req.Header.Set("Authorization", "Bearer "+drs.AccessToken)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var respBody map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
+		return nil, err
+	}
+
+	return respBody, nil
+}
+
+// PutMultipart sends a PUT request with the default strategy.
+// Example:
+// resp, err := drs.PutMultipart(url, formData)
+func (drs *DefaultRequestStrategy) PutMultipart(
+	url string,
+	formData map[string]interface{},
+) (map[string]interface{}, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for key, value := range formData {
+		_ = writer.WriteField(key, fmt.Sprintf("%v", value))
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	if drs.AccessToken != "" {
 		req.Header.Set("Authorization", "Bearer "+drs.AccessToken)
 	}

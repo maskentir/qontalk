@@ -36,30 +36,33 @@ import (
 // }
 
 // Send an interactive message configuration
-// interactiveBuilder := qontak.SendInteractiveMessage{
-// 	RoomID: "room123",
-// 	Type:   "type123",
-// 	Interactive: qontak.InteractiveData{
-// 		Header: &qontak.InteractiveHeader{
-// 			Format:   "json",
-// 			Text:     "Header Text",
-// 			Link:     "https://example.com",
-// 			Filename: "file.txt",
-// 		},
-// 		Body: "Body Text",
-// 		Buttons: []qontak.Button{
-// 			{ID: "btn1", Title: "Button 1"},
-// 			{ID: "btn2", Title: "Button 2"},
-// 		},
-// 	},
-// }
+//
+//	interactiveBuilder := qontak.SendInteractiveMessage{
+//		RoomID: "room123",
+//		Type:   "type123",
+//		Interactive: qontak.InteractiveData{
+//			Header: &qontak.InteractiveHeader{
+//				Format:   "json",
+//				Text:     "Header Text",
+//				Link:     "https://example.com",
+//				Filename: "file.txt",
+//			},
+//			Body: "Body Text",
+//			Buttons: []qontak.Button{
+//				{ID: "btn1", Title: "Button 1"},
+//				{ID: "btn2", Title: "Button 2"},
+//			},
+//		},
+//	}
 //
 // Send the configured interactive message to the Qontak platform
-// if err := sdk.SendInteractiveMessage(interactiveBuilder); err != nil {
-// 	log.Println("Sending interactive message failed:", err)
-// } else {
-// 	fmt.Println("Interactive message sent successfully")
-// }
+//
+//	if err := sdk.SendInteractiveMessage(interactiveBuilder); err != nil {
+//		log.Println("Sending interactive message failed:", err)
+//	} else {
+//
+//		fmt.Println("Interactive message sent successfully")
+//	}
 func ExampleMain() {
 	// Create an instance of QontakSDK using the builder pattern
 	sdk := qontak.NewQontakSDKBuilder().

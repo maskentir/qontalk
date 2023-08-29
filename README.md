@@ -40,7 +40,7 @@ This FSM integration empowers you to build complex, stateful applications with e
 To install the Qontalk SDK, you can use `go get`:
 
 ```sh
-go get github.com/your-username/qontalk
+go get github.com/maskentir/qontalk
 ```
 
 ## Documentation
@@ -56,8 +56,8 @@ package main
 
 import (
     "fmt"
-    "github.com/your-username/qontalk/qontak"
-    "github.com/your-username/qontalk/fsm"
+    "github.com/maskentir/qontalk/qontak"
+    "github.com/maskentir/qontalk/fsm"
 )
 
 func main() {

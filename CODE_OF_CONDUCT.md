@@ -1,4 +1,4 @@
-# Code of Conduct
+# Code of Conduct 👥🤝
 
 We are committed to providing a welcoming and inclusive environment for all people, regardless of background, gender, gender identity, sexual orientation, ability, ethnicity, socioeconomic status, and religion (or lack thereof).
 

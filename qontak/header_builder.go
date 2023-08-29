@@ -39,12 +39,13 @@ func (b *InteractiveHeaderBuilder) WithFilename(filename string) *InteractiveHea
 
 // Build constructs an InteractiveHeader using the configurations set in the builder.
 // Example:
-//   headerBuilder := NewInteractiveHeaderBuilder().
-//       WithFormat("bold").
-//       WithText("Important Header").
-//       WithLink("https://example.com").
-//       WithFilename("header.txt")
-//   header := headerBuilder.Build()
+//
+//	headerBuilder := NewInteractiveHeaderBuilder().
+//	    WithFormat("bold").
+//	    WithText("Important Header").
+//	    WithLink("https://example.com").
+//	    WithFilename("header.txt")
+//	header := headerBuilder.Build()
 func (b *InteractiveHeaderBuilder) Build() *InteractiveHeader {
 	return &InteractiveHeader{
 		Format:   b.format,

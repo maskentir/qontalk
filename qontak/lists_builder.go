@@ -27,15 +27,16 @@ func (b *InteractiveListsBuilder) WithSections(
 
 // Build constructs an InteractiveLists using the configurations set in the builder.
 // Example:
-//   sectionBuilder := NewInteractiveSectionBuilder().
-//       WithTitle("Section Title").
-//       WithRows([]InteractiveRow{row1, row2})
-//   sections := []InteractiveSection{sectionBuilder.Build()}
 //
-//   listsBuilder := NewInteractiveListsBuilder().
-//       WithButton("View More").
-//       WithSections(sections)
-//   lists := listsBuilder.Build()
+//	sectionBuilder := NewInteractiveSectionBuilder().
+//	    WithTitle("Section Title").
+//	    WithRows([]InteractiveRow{row1, row2})
+//	sections := []InteractiveSection{sectionBuilder.Build()}
+//
+//	listsBuilder := NewInteractiveListsBuilder().
+//	    WithButton("View More").
+//	    WithSections(sections)
+//	lists := listsBuilder.Build()
 func (b *InteractiveListsBuilder) Build() *InteractiveLists {
 	return &InteractiveLists{
 		Button:   b.button,

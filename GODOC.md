@@ -16,7 +16,10 @@ The qontalk package combines the functionality of the Qontak and FSM packages to
 
 The Qontak integration within qontalk enables you to:
 
-\- Authenticate with Qontak's services using various authentication methods. \- Send messages to customers and agents, including text, images, and interactive messages. \- Manage WhatsApp templates and send WhatsApp messages. \- Perform Direct WhatsApp Broadcasts with customization options.
+- Authenticate with Qontak's services using various authentication methods.
+- Send messages to customers and agents, including text, images, and interactive messages.
+- Manage WhatsApp templates and send WhatsApp messages.
+- Perform Direct WhatsApp Broadcasts with customization options.
 
 You can utilize these features to enhance your messaging capabilities and communication with customers and agents through Qontak's platform.
 
@@ -26,7 +29,10 @@ The FSM integration allows you to create, manage, and execute Finite State Machi
 
 Key features of the FSM integration include:
 
-\- Creating FSM instances with custom initial states and transitions. \- Sending events to trigger state transitions. \- Managing FSM lifecycle, including starting and stopping FSM execution. \- Defining global callbacks to handle state transitions and events.
+- Creating FSM instances with custom initial states and transitions.
+- Sending events to trigger state transitions.
+- Managing FSM lifecycle, including starting and stopping FSM execution.
+- Defining global callbacks to handle state transitions and events.
 
 This FSM integration empowers you to build complex, stateful applications with ease.
 

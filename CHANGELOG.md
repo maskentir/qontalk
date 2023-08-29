@@ -19,6 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bug fixes or issue resolutions.
 
+## [1.2.1] - 2023-08-29
+
+### Added
+
+- **New MD Files**: We've added new Markdown files to enhance project documentation. 📝
+- **Enhanced Contribution Guidelines**: Updated contribution guidelines for a smoother collaboration process. 🤝
+- **Improved Code of Conduct**: Our Code of Conduct has been updated for a more inclusive community. 🌈
+
+### Enhanced
+
+- **Improved README**: We've made the README more informative and user-friendly. 📚
+- **Updated Issue and Pull Request Templates**: Enhanced templates for a better issue and pull request experience. 📄
+- **Refined Code Style**: Improved coding style for consistency. 🎨
+
+### Fixed
+
+- **Fixed Codeowner File**: The CODEOWNER file has been corrected. 🧐
+- **Updated Release Guidelines**: Updated release documentation for clarity. 📦
+
 ## [1.2.0] - 2023-08-29
 
 ### Added
@@ -50,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial implementation of the project.
 
-[Unreleased]: https://github.com/maskentir/qontalk/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/maskentir/qontalk/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/maskentir/qontalk/releases/tag/v1.2.1
 [1.2.0]: https://github.com/maskentir/qontalk/releases/tag/v1.2.0
 [1.1.0]: https://github.com/maskentir/qontalk/releases/tag/v1.1.0
 [1.0.0]: https://github.com/maskentir/qontalk/releases/tag/v1.0.0

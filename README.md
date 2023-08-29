@@ -120,10 +120,6 @@ func main() {
 }
 ```
 
-## License
-
-This library is released under the [MIT License](LICENSE).
-
 ## Contributing
 
 Please read our [Contribution Guidelines](CONTRIBUTE.md) before submitting a pull request.

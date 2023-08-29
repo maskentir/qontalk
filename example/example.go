@@ -1,3 +1,6 @@
+// Package main is an example program demonstrating the use of the qontalk package
+// and finite state machine (fsm) package for creating and managing a Finite State Machine
+// and interacting with the Qontak SDK.
 package main
 
 import (
@@ -7,11 +10,13 @@ import (
 	"github.com/maskentir/qontalk/qontak"
 )
 
+// main is the entry point of the example program.
 func main() {
 	exampleFSM()
 	exampleQontak()
 }
 
+// exampleFSM demonstrates how to create and use a Finite State Machine (FSM) using the fsm package.
 func exampleFSM() {
 	// Define custom state types.
 	type MyState int
@@ -59,6 +64,7 @@ func exampleFSM() {
 	fmt.Println("FSM Stopped")
 }
 
+// exampleQontak demonstrates how to interact with the Qontak SDK using the qontak package.
 func exampleQontak() {
 	// Create QontakSDK instance
 	sdkBuilder := qontak.NewQontakSDKBuilder().Build()

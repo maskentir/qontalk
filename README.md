@@ -2,6 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Go version](https://img.shields.io/badge/go-1.16%2B-blue.svg)
+[![Go Reference](https://pkg.go.dev/badge/github.com/maskentir/qontalk.svg)](https://pkg.go.dev/github.com/maskentir/qontalk)
 
 Qontalk is a Go SDK that provides provides a unified Go SDK for seamless interaction with both the Qontak and FSM APIs, allowing you to interact with the Qontak platform. This SDK includes functionalities to authenticate, send message interactions, send interactive messages, send WhatsApp messages, send Direct WhatsApp Broadcasts, and retrieve WhatsApp Templates.
 

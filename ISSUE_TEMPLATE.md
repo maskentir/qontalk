@@ -1,31 +1,35 @@
-### Issue Description
+# 🐛 Issue Template 🐛
 
-Please provide a brief description of the issue you are facing or the feature you'd like to request.
+## Issue Description
 
-### Expected Behavior
+📝 Please provide a brief description of the issue you are facing or the feature you'd like to request.
 
-Explain what you expected to happen.
+## Expected Behavior
 
-### Actual Behavior
+💡 Explain what you expected to happen.
 
-Explain what is currently happening.
+## Actual Behavior
 
-### Steps to Reproduce (if applicable)
+🚫 Explain what is currently happening.
 
-Provide steps to reproduce the issue.
+## Steps to Reproduce (if applicable)
 
-### Screenshots or Logs (if applicable)
+🔍 Provide steps to reproduce the issue.
 
-If applicable, include screenshots or logs that help illustrate the issue.
+## Screenshots or Logs (if applicable)
 
-### Environment
+📷 If applicable, include screenshots or logs that help illustrate the issue.
 
-- OS: [e.g., Windows 10, macOS 11, Linux (Ubuntu)]
-- Go Version: [e.g., 1.17]
-- Package Version: [e.g., v0.1.0]
+## Environment
 
-### Additional Information
+🔧
 
-Any additional information that might be helpful in understanding the issue.
+- **OS**: [e.g., Windows 10, macOS 11, Linux (Ubuntu)]
+- **Go Version**: [e.g., 1.17]
+- **Package Version**: [e.g., v0.1.0]
+
+## Additional Information
+
+ℹ️ Any additional information that might be helpful in understanding the issue.
 
 By submitting this issue, you agree to abide by the project's [Code of Conduct](CODE_OF_CONDUCT.md).

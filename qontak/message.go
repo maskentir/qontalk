@@ -55,3 +55,41 @@ type InteractiveData struct {
 	Buttons []Button           `json:"buttons"`
 	Lists   *InteractiveLists  `json:"lists,omitempty"`
 }
+
+// WhatsAppMessage represents the parameters for sending a WhatsApp message.
+type WhatsAppMessage struct {
+	RoomID  string
+	Message string
+}
+
+// ButtonMessage represents a button in a message.
+type ButtonMessage struct {
+	Index string `json:"index"`
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+// KeyValue represents a key-value pair.
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// KeyValueText represents a key-value pair with text value.
+type KeyValueText struct {
+	Key       string `json:"key"`
+	ValueText string `json:"value_text"`
+	Value     string `json:"value"`
+}
+
+// DirectWhatsAppBroadcast is a builder for creating parameters for sending direct WhatsApp broadcast.
+type DirectWhatsAppBroadcast struct {
+	ToName               string            `json:"to_name"`
+	ToNumber             string            `json:"to_number"`
+	MessageTemplateID    string            `json:"message_template_id"`
+	ChannelIntegrationID string            `json:"channel_integration_id"`
+	Language             map[string]string `json:"language"`
+	HeaderParams         []KeyValue        `json:"header"`
+	BodyParams           []KeyValueText    `json:"body"`
+	Buttons              []ButtonMessage   `json:"buttons"`
+}

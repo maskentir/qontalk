@@ -1,120 +1,142 @@
-// Package main is an example of using the QontakSDK to interact with the Qontak platform.
-// It demonstrates how to create an instance of the QontakSDK, authenticate it, and send
-// message interactions as well as interactive messages.
 package main
 
 import (
 	"fmt"
-	"log"
 
-	qontak "github.com/maskentir/qontalk/qontak"
+	"github.com/maskentir/qontalk/fsm"
+	"github.com/maskentir/qontalk/qontak"
 )
 
-// ExampleMain demonstrates how to use the QontakSDK to interact with the Qontak platform.
-// Create an instance of QontakSDK using the builder pattern
-// sdk := qontak.NewQontakSDKBuilder().
-// 	WithClientCredentials("your-username", "your-password", "your-grant-type", "your-client-id", "your-client-secret").
-// 	Build()
+func main() {
+	exampleFSM()
+	exampleQontak()
+}
 
-// // Authenticate the SDK using the provided credentials
-// if err := sdk.Authenticate(); err != nil {
-// 	log.Fatal("Authentication failed:", err)
-// }
+func exampleFSM() {
+	// Define custom state types.
+	type MyState int
+	const (
+		StateA MyState = iota
+		StateB
+		StateC
+	)
 
-//  Send message interactions configuration
-// interactionsBuilder := qontak.SendMessageInteractions{
-// 	ReceiveMessageFromAgent:    true,
-// 	ReceiveMessageFromCustomer: true,
-// 	StatusMessage:              true,
-// 	URL:                        "https://example.com",
-// }
-// Send the configured message interactions to the Qontak platform
-// if err := sdk.SendMessageInteractions(interactionsBuilder); err != nil {
-// 	log.Println("Sending message interactions failed:", err)
-// } else {
-// 	fmt.Println("Message interactions sent successfully")
-// }
+	// Define custom event types.
+	type MyEvent int
+	const (
+		EventX MyEvent = iota
+		EventY
+	)
 
-// Send an interactive message configuration
-//
-//	interactiveBuilder := qontak.SendInteractiveMessage{
-//		RoomID: "room123",
-//		Type:   "type123",
-//		Interactive: qontak.InteractiveData{
-//			Header: &qontak.InteractiveHeader{
-//				Format:   "json",
-//				Text:     "Header Text",
-//				Link:     "https://example.com",
-//				Filename: "file.txt",
-//			},
-//			Body: "Body Text",
-//			Buttons: []qontak.Button{
-//				{ID: "btn1", Title: "Button 1"},
-//				{ID: "btn2", Title: "Button 2"},
-//			},
-//		},
-//	}
-//
-// Send the configured interactive message to the Qontak platform
-//
-//	if err := sdk.SendInteractiveMessage(interactiveBuilder); err != nil {
-//		log.Println("Sending interactive message failed:", err)
-//	} else {
-//
-//		fmt.Println("Interactive message sent successfully")
-//	}
-func ExampleMain() {
-	// Create an instance of QontakSDK using the builder pattern
-	sdk := qontak.NewQontakSDKBuilder().
-		WithClientCredentials("your-username", "your-password", "your-grant-type", "your-client-id", "your-client-secret").
+	// Define a callback function to execute when transitioning.
+	callback := func(from fsm.State, event fsm.Event, to fsm.State, params map[string]interface{}) {
+		fmt.Printf("Transition from %v to %v due to event %v\n", from, to, event)
+	}
+
+	// Create an FSM instance with an initial state, transitions, and the callback.
+	transitions := []fsm.Transition{
+		{From: StateA, Event: EventX, To: StateB},
+		{From: StateB, Event: EventY, To: StateC},
+	}
+
+	fsmInstance, err := fsm.NewFSM(StateA, transitions, callback)
+	if err != nil {
+		fmt.Println("Error creating FSM:", err)
+		return
+	}
+
+	// Send events to trigger transitions.
+	fsmInstance.SendEvent(EventX, nil)
+	fsmInstance.SendEvent(EventY, nil)
+
+	// Get the current state.
+	currentState := fsmInstance.GetCurrentState()
+	fmt.Println("Current State:", currentState)
+
+	// Stop the FSM (this will wait for all goroutines to complete).
+	fsmInstance.Stop()
+
+	fmt.Println("FSM Stopped")
+}
+
+func exampleQontak() {
+	// Create QontakSDK instance
+	sdkBuilder := qontak.NewQontakSDKBuilder().Build()
+
+	// Authenticate with credentials
+	err := sdkBuilder.Authenticate()
+	if err != nil {
+		fmt.Println("Authentication failed:", err)
+		return
+	}
+
+	// Create message interactions builder
+	interactionsBuilder := qontak.NewSendMessageInteractionsBuilder().
+		WithReceiveMessageFromAgent(true).
+		WithStatusMessage(true).
+		WithURL("https://example.com").
 		Build()
 
-	// Authenticate the SDK using the provided credentials
-	if err := sdk.Authenticate(); err != nil {
-		log.Fatal("Authentication failed:", err)
+	// Send message interactions
+	err = sdkBuilder.SendMessageInteractions(interactionsBuilder)
+	if err != nil {
+		fmt.Println("Failed to send interactions:", err)
 	}
 
-	// Send message interactions configuration
-	interactionsBuilder := qontak.SendMessageInteractions{
-		ReceiveMessageFromAgent:    true,
-		ReceiveMessageFromCustomer: true,
-		StatusMessage:              true,
-		URL:                        "https://example.com",
-	}
-	// Send the configured message interactions to the Qontak platform
-	if err := sdk.SendMessageInteractions(interactionsBuilder); err != nil {
-		log.Println("Sending message interactions failed:", err)
-	} else {
-		fmt.Println("Message interactions sent successfully")
-	}
-
-	// Send an interactive message configuration
-	interactiveBuilder := qontak.SendInteractiveMessage{
-		RoomID: "room123",
-		Type:   "type123",
-		Interactive: qontak.InteractiveData{
-			Header: &qontak.InteractiveHeader{
-				Format:   "json",
-				Text:     "Header Text",
-				Link:     "https://example.com",
-				Filename: "file.txt",
-			},
-			Body: "Body Text",
+	// Create interactive message builder
+	interactiveBuilder := qontak.NewSendInteractiveMessageBuilder().
+		WithRoomID("room123").
+		WithInteractiveData(qontak.InteractiveData{
+			Body: "Hello, World!",
 			Buttons: []qontak.Button{
 				{ID: "btn1", Title: "Button 1"},
 				{ID: "btn2", Title: "Button 2"},
 			},
-		},
-	}
-	// Send the configured interactive message to the Qontak platform
-	if err := sdk.SendInteractiveMessage(interactiveBuilder); err != nil {
-		log.Println("Sending interactive message failed:", err)
-	} else {
-		fmt.Println("Interactive message sent successfully")
-	}
-}
+		}).
+		Build()
 
-func main() {
-	// Call the ExampleMain function to demonstrate the usage of the QontakSDK.
-	ExampleMain()
+	// Send interactive message
+	err = sdkBuilder.SendInteractiveMessage(interactiveBuilder)
+	if err != nil {
+		fmt.Println("Failed to send interactive message:", err)
+	}
+
+	// Create WhatsApp message builder
+	whatsappMessageBuilder := qontak.NewWhatsAppMessageBuilder().
+		WithRoomID("room123").
+		WithMessage("Hello, this is a message!").
+		Build()
+
+	// Send WhatsApp message
+	err = sdkBuilder.SendWhatsAppMessage(whatsappMessageBuilder)
+	if err != nil {
+		fmt.Println("Failed to send WhatsApp message:", err)
+	}
+
+	// Create Direct WhatsApp Broadcast builder
+	directWhatsAppBroadcastBuilder := qontak.NewDirectWhatsAppBroadcastBuilder().
+		WithToName("John Doe").
+		WithToNumber("123456789").
+		WithMessageTemplateID("template123").
+		WithChannelIntegrationID("integration456").
+		WithLanguage("en").
+		AddHeaderParam("url", "https://example.com/sample.pdf").
+		AddHeaderParam("filename", "sample.pdf").
+		AddBodyParam("1", "Lorem Ipsum", "customer_name").
+		AddButton(qontak.ButtonMessage{Index: "0", Type: "url", Value: "paymentUniqNumber"}).
+		Build()
+
+	// Send Direct WhatsApp Broadcast
+	err = sdkBuilder.SendDirectWhatsAppBroadcast(directWhatsAppBroadcastBuilder)
+	if err != nil {
+		fmt.Println("Failed to send Direct WhatsApp Broadcast:", err)
+	}
+
+	// Get WhatsApp Templates
+	templates, err := sdkBuilder.GetWhatsAppTemplates()
+	if err != nil {
+		fmt.Println("Failed to get WhatsApp Templates:", err)
+	} else {
+		fmt.Println("WhatsApp Templates:", templates)
+	}
 }

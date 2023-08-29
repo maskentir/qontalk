@@ -45,12 +45,13 @@ func (b *SendMessageInteractionsBuilder) WithURL(url string) *SendMessageInterac
 
 // Build builds the SendMessageInteractions using the configuration from the builder.
 // Example:
-//   builder := NewSendMessageInteractionsBuilder().
-//       WithReceiveMessageFromAgent(true).
-//       WithReceiveMessageFromCustomer(false).
-//       WithStatusMessage(true).
-//       WithURL("https://example.com").
-//   interactions := builder.Build()
+//
+//	builder := NewSendMessageInteractionsBuilder().
+//	    WithReceiveMessageFromAgent(true).
+//	    WithReceiveMessageFromCustomer(false).
+//	    WithStatusMessage(true).
+//	    WithURL("https://example.com").
+//	interactions := builder.Build()
 func (b *SendMessageInteractionsBuilder) Build() SendMessageInteractions {
 	return SendMessageInteractions{
 		ReceiveMessageFromAgent:    b.ReceiveMessageFromAgent,
@@ -87,10 +88,11 @@ func (b *SendInteractiveMessageBuilder) WithInteractiveData(
 
 // Build builds the SendInteractiveMessage using the configuration from the builder.
 // Example:
-//   builder := NewSendInteractiveMessageBuilder().
-//       WithRoomID("room123").
-//       WithInteractiveData(interactiveData).
-//   message := builder.Build()
+//
+//	builder := NewSendInteractiveMessageBuilder().
+//	    WithRoomID("room123").
+//	    WithInteractiveData(interactiveData).
+//	message := builder.Build()
 func (b *SendInteractiveMessageBuilder) Build() SendInteractiveMessage {
 	return SendInteractiveMessage{
 		RoomID:      b.RoomID,
@@ -140,12 +142,13 @@ func (b *InteractiveDataBuilder) WithLists(lists *InteractiveLists) *Interactive
 
 // Build builds the InteractiveData using the configuration from the builder.
 // Example:
-//   builder := NewInteractiveDataBuilder().
-//       WithHeader(header).
-//       WithBody("Hello, this is interactive!").
-//       WithButtons(buttons).
-//       WithLists(lists).
-//   data := builder.Build()
+//
+//	builder := NewInteractiveDataBuilder().
+//	    WithHeader(header).
+//	    WithBody("Hello, this is interactive!").
+//	    WithButtons(buttons).
+//	    WithLists(lists).
+//	data := builder.Build()
 func (b *InteractiveDataBuilder) Build() InteractiveData {
 	interactiveData := InteractiveData{}
 
@@ -187,10 +190,11 @@ func (b *InteractiveSectionBuilder) WithRows(rows []InteractiveRow) *Interactive
 
 // Build builds the InteractiveSection using the configuration from the builder.
 // Example:
-//   builder := NewInteractiveSectionBuilder().
-//       WithTitle("Section Title").
-//       WithRows(rows).
-//   section := builder.Build()
+//
+//	builder := NewInteractiveSectionBuilder().
+//	    WithTitle("Section Title").
+//	    WithRows(rows).
+//	section := builder.Build()
 func (b *InteractiveSectionBuilder) Build() InteractiveSection {
 	return InteractiveSection{
 		Title: b.title,
@@ -230,15 +234,137 @@ func (b *InteractiveRowBuilder) WithDescription(description string) *Interactive
 
 // Build builds the InteractiveRow using the configuration from the builder.
 // Example:
-//   builder := NewInteractiveRowBuilder().
-//       WithID("row123").
-//       WithTitle("Row Title").
-//       WithDescription("Row Description").
-//   row := builder.Build()
+//
+//	builder := NewInteractiveRowBuilder().
+//	    WithID("row123").
+//	    WithTitle("Row Title").
+//	    WithDescription("Row Description").
+//	row := builder.Build()
 func (b *InteractiveRowBuilder) Build() InteractiveRow {
 	return InteractiveRow{
 		ID:          b.id,
 		Title:       b.title,
 		Description: b.description,
+	}
+}
+
+// WhatsAppMessageBuilder is a builder for creating WhatsApp message parameters.
+type WhatsAppMessageBuilder struct {
+	roomID  string
+	message string
+}
+
+// NewWhatsAppMessageBuilder creates a new instance of WhatsAppMessageBuilder.
+func NewWhatsAppMessageBuilder() *WhatsAppMessageBuilder {
+	return &WhatsAppMessageBuilder{}
+}
+
+// WithRoomID sets the room ID for the WhatsApp message.
+func (b *WhatsAppMessageBuilder) WithRoomID(roomID string) *WhatsAppMessageBuilder {
+	b.roomID = roomID
+	return b
+}
+
+// WithMessage sets the text message for the WhatsApp message.
+func (b *WhatsAppMessageBuilder) WithMessage(message string) *WhatsAppMessageBuilder {
+	b.message = message
+	return b
+}
+
+// Build constructs WhatsApp message parameters using the configurations set in the builder.
+// Example:
+//
+//	messageBuilder := NewWhatsAppMessageBuilder().
+//	    WithRoomID("room123").
+//	    WithMessage("Hello, this is a message!")
+//	messageParams := messageBuilder.Build()
+func (b *WhatsAppMessageBuilder) Build() WhatsAppMessage {
+	return WhatsAppMessage{
+		RoomID:  b.roomID,
+		Message: b.message,
+	}
+}
+
+// NewDirectWhatsAppBroadcastBuilder creates a new instance of DirectWhatsAppBroadcastBuilder.
+func NewDirectWhatsAppBroadcastBuilder() *DirectWhatsAppBroadcastBuilder {
+	return &DirectWhatsAppBroadcastBuilder{
+		headerParams: make([]KeyValue, 0),
+		bodyParams:   make([]KeyValueText, 0),
+		buttons:      make([]ButtonMessage, 0),
+		language:     make(map[string]string),
+	}
+}
+
+// DirectWhatsAppBroadcastBuilder is a builder for creating parameters for sending direct WhatsApp broadcast.
+type DirectWhatsAppBroadcastBuilder struct {
+	toName               string
+	toNumber             string
+	messageTemplateID    string
+	channelIntegrationID string
+	headerParams         []KeyValue
+	bodyParams           []KeyValueText
+	buttons              []ButtonMessage
+	language             map[string]string
+}
+
+// WithToName sets the recipient's name.
+func (b *DirectWhatsAppBroadcastBuilder) WithToName(toName string) *DirectWhatsAppBroadcastBuilder {
+	b.toName = toName
+	return b
+}
+
+// WithToNumber sets the recipient's WhatsApp number.
+func (b *DirectWhatsAppBroadcastBuilder) WithToNumber(toNumber string) *DirectWhatsAppBroadcastBuilder {
+	b.toNumber = toNumber
+	return b
+}
+
+// WithMessageTemplateID sets the ID of the message template to be used.
+func (b *DirectWhatsAppBroadcastBuilder) WithMessageTemplateID(messageTemplateID string) *DirectWhatsAppBroadcastBuilder {
+	b.messageTemplateID = messageTemplateID
+	return b
+}
+
+// WithChannelIntegrationID sets the ID of the channel integration to be used.
+func (b *DirectWhatsAppBroadcastBuilder) WithChannelIntegrationID(channelIntegrationID string) *DirectWhatsAppBroadcastBuilder {
+	b.channelIntegrationID = channelIntegrationID
+	return b
+}
+
+// WithLanguage sets the language for the message.
+func (b *DirectWhatsAppBroadcastBuilder) WithLanguage(languageCode string) *DirectWhatsAppBroadcastBuilder {
+	b.language["code"] = languageCode
+	return b
+}
+
+// AddHeaderParam adds a key-value pair to the header parameters.
+func (b *DirectWhatsAppBroadcastBuilder) AddHeaderParam(key, value string) *DirectWhatsAppBroadcastBuilder {
+	b.headerParams = append(b.headerParams, KeyValue{Key: key, Value: value})
+	return b
+}
+
+// AddBodyParam adds a key-value pair to the body parameters.
+func (b *DirectWhatsAppBroadcastBuilder) AddBodyParam(key, valueText, value string) *DirectWhatsAppBroadcastBuilder {
+	b.bodyParams = append(b.bodyParams, KeyValueText{Key: key, ValueText: valueText, Value: value})
+	return b
+}
+
+// AddButton adds a button to the list of buttons.
+func (b *DirectWhatsAppBroadcastBuilder) AddButton(button ButtonMessage) *DirectWhatsAppBroadcastBuilder {
+	b.buttons = append(b.buttons, button)
+	return b
+}
+
+// Build constructs a DirectWhatsAppBroadcastParams using the configurations set in the builder.
+func (b *DirectWhatsAppBroadcastBuilder) Build() DirectWhatsAppBroadcast {
+	return DirectWhatsAppBroadcast{
+		ToName:               b.toName,
+		ToNumber:             b.toNumber,
+		MessageTemplateID:    b.messageTemplateID,
+		ChannelIntegrationID: b.channelIntegrationID,
+		Language:             b.language,
+		HeaderParams:         b.headerParams,
+		BodyParams:           b.bodyParams,
+		Buttons:              b.buttons,
 	}
 }

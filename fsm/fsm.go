@@ -126,6 +126,11 @@ type FSM struct {
 
 // NewFSM creates a new FSM with the given initial state, transitions, and global callback.
 func NewFSM(initialState State, transitions []Transition, globalCallback Callback) (*FSM, error) {
+	// Validate the globalCallback parameter.
+	if globalCallback == nil {
+		return nil, errors.New("globalCallback cannot be nil")
+	}
+
 	// Create a new FSM instance.
 	fsm := &FSM{
 		currentState:   initialState,
@@ -193,11 +198,17 @@ func (f *FSM) SendEvent(event Event, params map[string]interface{}) error {
 	if transition.Timeout > 0 {
 		f.runWithTimeout(transition, params)
 	} else if transition.Action != nil {
-		f.runWithAction(transition, params)
+		// Run the transition action in a goroutine.
+		go f.runWithAction(transition, params)
 	}
 
 	if f.currentState == transition.From {
+		// Transition to the new state.
 		f.currentState = transition.To
+
+		// Log the current state after the transition.
+		fmt.Printf("Current state after transition: %v\n", f.currentState)
+
 		return nil
 	}
 
@@ -256,12 +267,21 @@ func (f *FSM) runWithTimeout(transition Transition, params map[string]interface{
 		select {
 		case <-time.After(transition.Timeout):
 			f.mutex.Lock()
+			currentState := f.currentState
 			defer f.mutex.Unlock()
 
-			if f.currentState == transition.From {
+			if currentState == transition.From {
 				err := transition.Action()
 				if err != nil {
 					f.handleTransitionError(transition, err, params)
+				} else {
+					// Update currentState only if it is still the same as transition.From
+					f.mutex.Lock()
+					if f.currentState == transition.From {
+						f.currentState = transition.To
+					}
+					defer f.mutex.Unlock()
+					f.globalCallback(currentState, transition.Event, transition.To, params)
 				}
 			}
 		case <-f.stopCh:

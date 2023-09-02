@@ -1,5 +1,4 @@
 // Package fsm provides a Finite State Machine (FSM) implementation in Go.
-//
 // # Overview
 //
 // The fsm package allows you to create and manage a Finite State Machine (FSM).
@@ -105,6 +104,8 @@
 //			}
 //		}
 //	}
+//
+// Bot represents a finite state machine (FSM) bot.
 package fsm
 
 import (
@@ -116,12 +117,14 @@ import (
 
 // Bot represents the FSM-based chatbot.
 type Bot struct {
-	Name         string
-	CurrentState string
-	UserSess     map[string]*UserSession
-	UserMutex    sync.Mutex
-	FsmStates    map[string]*FsmState
-	GlobalVars   map[string]string
+	Name           string
+	CurrentState   string
+	UserSess       map[string]*UserSession
+	UserMutex      sync.Mutex
+	FsmStates      map[string]*FsmState
+	GlobalVars     map[string]string
+	StateListeners map[string]ListenerFunc
+	RuleListeners  map[string]ListenerFunc
 }
 
 // FsmState represents a state within the FSM.
@@ -158,6 +161,10 @@ type SetVariableAction struct {
 	Value string
 }
 
+type VariableMap map[string]string
+
+type ListenerFunc func(userID string, message string, session *UserSession)
+
 // UserSession represents a user's session with the chatbot.
 type UserSession struct {
 	SessionVars  map[string]string
@@ -167,12 +174,14 @@ type UserSession struct {
 // NewBot creates a new chatbot instance with the specified name.
 func NewBot(name string) *Bot {
 	return &Bot{
-		Name:         name,
-		CurrentState: "start",
-		UserSess:     make(map[string]*UserSession),
-		UserMutex:    sync.Mutex{},
-		FsmStates:    make(map[string]*FsmState),
-		GlobalVars:   make(map[string]string),
+		Name:           name,
+		CurrentState:   "start",
+		UserSess:       make(map[string]*UserSession),
+		UserMutex:      sync.Mutex{},
+		FsmStates:      make(map[string]*FsmState),
+		GlobalVars:     make(map[string]string),
+		StateListeners: make(map[string]ListenerFunc),
+		RuleListeners:  make(map[string]ListenerFunc),
 	}
 }
 
@@ -212,16 +221,25 @@ func (b *Bot) AddRuleToState(stateName, name, pattern, respond string, actions [
 	return nil
 }
 
+// AddListenerToState adds a listener function to a specific state.
+func (b *Bot) AddListenerToState(stateName string, listener ListenerFunc) {
+	b.StateListeners[stateName] = listener
+}
+
+// AddListenerToRule adds a listener function to a specific rule.
+func (b *Bot) AddListenerToRule(ruleName string, listener ListenerFunc) {
+	b.RuleListeners[ruleName] = listener
+}
+
 // ProcessMessage processes a user's message and returns a response based on the chatbot's current state.
 func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 	b.UserMutex.Lock()
 	defer b.UserMutex.Unlock()
 
-	// Create or retrieve the user's session
 	session, ok := b.UserSess[userID]
 	if !ok {
 		session = &UserSession{
-			SessionVars:  make(map[string]string),
+			SessionVars:  make(VariableMap),
 			SessionState: b.CurrentState,
 		}
 		b.UserSess[userID] = session
@@ -229,12 +247,10 @@ func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 
 	state := b.FsmStates[session.SessionState]
 
-	// Check if there's an error rule for the current state
 	if state.ErrorRule.Pattern != nil && state.ErrorRule.Pattern.MatchString(message) {
 		return state.ErrorRule.Respond, nil
 	}
 
-	// Check for transitions
 	for _, transition := range state.Transitions {
 		if transition.Event == message {
 			if transition.Target == "start" {
@@ -247,35 +263,68 @@ func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 		}
 	}
 
-	// Check rules
-	for _, rule := range state.Rules {
-		match := rule.Pattern.FindStringSubmatch(message)
-		if match != nil {
-			// Set variables in the user's session
-			for i, name := range rule.Pattern.SubexpNames() {
-				if i > 0 && name != "" {
-					session.SessionVars[name] = match[i]
-				}
-			}
+	var (
+		wg        sync.WaitGroup
+		respChan  = make(chan string, len(state.Rules))
+		errorChan = make(chan error, len(state.Rules))
+	)
 
-			// Execute actions
-			for _, action := range rule.Actions {
-				if action.SetVariable != nil {
-					if value, ok := session.SessionVars[action.SetVariable.Value]; ok {
-						session.SessionVars[action.SetVariable.Name] = value
+	for _, rule := range state.Rules {
+		wg.Add(1)
+
+		go func(rule Rule) {
+			defer wg.Done()
+
+			match := rule.Pattern.FindStringSubmatch(message)
+			if match != nil {
+				for i, name := range rule.Pattern.SubexpNames() {
+					if i > 0 && name != "" {
+						session.SessionVars[name] = match[i]
 					}
 				}
-			}
 
-			// Replace variables in the response with session values
-			respond := rule.Respond
-			for name, value := range session.SessionVars {
-				placeholder := fmt.Sprintf("{{%s}}", name)
-				respond = strings.ReplaceAll(respond, placeholder, value)
-			}
+				for _, action := range rule.Actions {
+					if action.SetVariable != nil {
+						if value, ok := session.SessionVars[action.SetVariable.Value]; ok {
+							session.SessionVars[action.SetVariable.Name] = value
+						}
+					}
+				}
 
-			return b.replaceVariables(respond, session.SessionVars), nil
-		}
+				respond := rule.Respond
+				for name, value := range session.SessionVars {
+					placeholder := fmt.Sprintf("{{%s}}", name)
+					respond = strings.ReplaceAll(respond, placeholder, value)
+				}
+
+				// Call state listener if available
+				if listener, ok := b.StateListeners[state.Name]; ok {
+					listener(userID, message, session)
+				}
+
+				// Call rule listener if available
+				if listener, ok := b.RuleListeners[rule.Name]; ok {
+					listener(userID, message, session)
+				}
+
+				respChan <- respond
+			}
+		}(rule)
+	}
+
+	go func() {
+		wg.Wait()
+		close(respChan)
+		close(errorChan)
+	}()
+
+	var responses []string
+	for response := range respChan {
+		responses = append(responses, response)
+	}
+
+	if len(responses) > 0 {
+		return responses[len(responses)-1], nil
 	}
 
 	// Default response when no transitions or rules match
@@ -283,7 +332,7 @@ func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 }
 
 // replaceVariables replaces variables in the text with their session values and global variables.
-func (b *Bot) replaceVariables(text string, vars map[string]string) string {
+func (b *Bot) replaceVariables(text string, vars VariableMap) string {
 	// Replace variables in the text with session values
 	for name, value := range vars {
 		placeholder := fmt.Sprintf("{{%s}}", name)

@@ -60,12 +60,14 @@ func TestBot_ProcessMessage(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		resp, err := bot.ProcessMessage(tc.UserID, tc.Message)
-		if err != tc.ExpectedErr {
-			t.Errorf("Expected error %v, got %v", tc.ExpectedErr, err)
-		}
-		if resp != tc.ExpectedResp {
-			t.Errorf("Expected response '%s', got '%s'", tc.ExpectedResp, resp)
-		}
+		t.Run(tc.UserID+"_"+tc.Message, func(t *testing.T) {
+			resp, err := bot.ProcessMessage(tc.UserID, tc.Message)
+			if err != tc.ExpectedErr {
+				t.Errorf("Expected error %v, got %v", tc.ExpectedErr, err)
+			}
+			if resp != tc.ExpectedResp {
+				t.Errorf("Expected response '%s', got '%s'", tc.ExpectedResp, resp)
+			}
+		})
 	}
 }

@@ -45,6 +45,7 @@
 //	import (
 //	    "fmt"
 //	    "github.com/maskentir/qontalk"
+//	    "github.com/maskentir/qontalk/fsm"
 //	)
 //
 //	func main() {
@@ -62,19 +63,46 @@
 //	    // Use Qontak features, send messages, etc.
 //
 //	    // Create an FSM instance
-//	    fsm := qontalk.NewFSM(initialState, transitions, globalCallback)
+//	    fsm := fsm.NewBot("ChatBot")
 //
-//	    // Start the FSM
-//	    go fsm.Start()
+//	    fsm.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
+//	        {Event: "1", Target: "view_growth_history"},
+//	        {Event: "2", Target: "update_growth_data"},
+//	    }, []fsm.Rule{}, fsm.Rule{})
 //
-//	    // Send events to trigger FSM state transitions
+//	    fsm.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
+//	        {Event: "exit", Target: "start"},
+//	    }, []fsm.Rule{}, fsm.Rule{
+//	        Name:    "custom_error",
+//	        Pattern: regexp.MustCompile("error"),
+//	        Respond: "Custom error message for view_growth_history state.",
+//	    })
 //
-//	    // Stop the FSM when done
-//	    fsm.Stop()
-//	}
+//	    fsm.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
+//	        {Event: "exit", Target: "start"},
+//	    }, []fsm.Rule{}, fsm.Rule{
+//	        Name:    "custom_error",
+//	        Pattern: regexp.MustCompile("error"),
+//	        Respond: "Custom error message for update_growth_data state.",
+//	    })
 //
-//	func globalCallback(from qontalk.State, event qontalk.Event, to qontalk.State, params map[string]interface{}) {
-//	    // Handle FSM state transitions and events
+//	    fsm.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
+//
+//	    messages := []string{
+//	        "2",
+//	        "Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm",
+//	        "error",
+//	    }
+//
+//	    for _, message := range messages {
+//	        response, err := fsm.ProcessMessage("user1", message)
+//	        if err != nil {
+//	            fmt.Printf("Error processing message '%s': %v\n", message, err)
+//	        } else {
+//	            fmt.Printf("User1: %s\n", message)
+//	            fmt.Printf("Bot: %s\n", response)
+//	        }
+//	    }
 //	}
 //
 // This example showcases how you can use the qontalk package to work with Qontak

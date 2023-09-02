@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/maskentir/qontalk/fsm"
 	"github.com/maskentir/qontalk/qontak"
@@ -18,50 +19,46 @@ func main() {
 
 // exampleFSM demonstrates how to create and use a Finite State Machine (FSM) using the fsm package.
 func exampleFSM() {
-	// Define custom state types.
-	type MyState int
-	const (
-		StateA MyState = iota
-		StateB
-		StateC
-	)
+	bot := fsm.NewBot("ChatBot")
 
-	// Define custom event types.
-	type MyEvent int
-	const (
-		EventX MyEvent = iota
-		EventY
-	)
+	bot.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
+		{Event: "1", Target: "view_growth_history"},
+		{Event: "2", Target: "update_growth_data"},
+	}, []fsm.Rule{}, fsm.Rule{})
 
-	// Define a callback function to execute when transitioning.
-	callback := func(from fsm.State, event fsm.Event, to fsm.State, params map[string]interface{}) {
-		fmt.Printf("Transition from %v to %v due to event %v\n", from, to, event)
+	bot.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
+		{Event: "exit", Target: "start"},
+	}, []fsm.Rule{}, fsm.Rule{
+		Name:    "custom_error",
+		Pattern: regexp.MustCompile("error"),
+		Respond: "Custom error message for view_growth_history state.",
+	})
+
+	bot.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
+		{Event: "exit", Target: "start"},
+	}, []fsm.Rule{}, fsm.Rule{
+		Name:    "custom_error",
+		Pattern: regexp.MustCompile("error"),
+		Respond: "Custom error message for update_growth_data state.",
+	})
+
+	bot.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
+
+	messages := []string{
+		"2",
+		"Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm",
+		"error",
 	}
 
-	// Create an FSM instance with an initial state, transitions, and the callback.
-	transitions := []fsm.Transition{
-		{From: StateA, Event: EventX, To: StateB},
-		{From: StateB, Event: EventY, To: StateC},
+	for _, message := range messages {
+		response, err := bot.ProcessMessage("user1", message)
+		if err != nil {
+			fmt.Printf("Error processing message '%s': %v\n", message, err)
+		} else {
+			fmt.Printf("User1: %s\n", message)
+			fmt.Printf("Bot: %s\n", response)
+		}
 	}
-
-	fsmInstance, err := fsm.NewFSM(StateA, transitions, callback)
-	if err != nil {
-		fmt.Println("Error creating FSM:", err)
-		return
-	}
-
-	// Send events to trigger transitions.
-	fsmInstance.SendEvent(EventX, nil)
-	fsmInstance.SendEvent(EventY, nil)
-
-	// Get the current state.
-	currentState := fsmInstance.GetCurrentState()
-	fmt.Println("Current State:", currentState)
-
-	// Stop the FSM (this will wait for all goroutines to complete).
-	fsmInstance.Stop()
-
-	fmt.Println("FSM Stopped")
 }
 
 // exampleQontak demonstrates how to interact with the Qontak SDK using the qontak package.

@@ -57,66 +57,65 @@ package main
 
 import (
     "fmt"
-    "github.com/maskentir/qontalk/qontak"
+    "github.com/maskentir/qontalk"
     "github.com/maskentir/qontalk/fsm"
 )
 
 func main() {
-    // Create QontakSDK instance
-    sdkBuilder := qontak.NewQontakSDKBuilder().Build()
+    // Create a QontalkSDK instance
+    sdk := qontalk.NewQontalkSDKBuilder().
+        WithClientCredentials("your-username", "your-password", "your-grant-type", "your-client-id", "your-client-secret").
+        Build()
 
-    // Authenticate with credentials
-    err := sdkBuilder.Authenticate()
-    if err != nil {
+    // Authenticate with Qontak
+    if err := sdk.Authenticate(); err != nil {
         fmt.Println("Authentication failed:", err)
         return
     }
 
-    // Create message interactions builder
-    interactionsBuilder := qontak.NewSendMessageInteractionsBuilder().
-        WithReceiveMessageFromAgent(true).
-        WithStatusMessage(true).
-        WithURL("https://example.com").
-        Build()
+    // Use Qontak features, send messages, etc.
 
-    // Send message interactions
-    err = sdkBuilder.SendMessageInteractions(interactionsBuilder)
-    if err != nil {
-        fmt.Println("Failed to send interactions:", err)
+    // Create an FSM instance
+    fsm := fsm.NewBot("ChatBot")
+
+    fsm.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
+        {Event: "1", Target: "view_growth_history"},
+        {Event: "2", Target: "update_growth_data"},
+    }, []fsm.Rule{}, fsm.Rule{})
+
+    fsm.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
+        {Event: "exit", Target: "start"},
+    }, []fsm.Rule{}, fsm.Rule{
+        Name:    "custom_error",
+        Pattern: regexp.MustCompile("error"),
+        Respond: "Custom error message for view_growth_history state.",
+    })
+
+    fsm.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
+        {Event: "exit", Target: "start"},
+    }, []fsm.Rule{}, fsm.Rule{
+        Name:    "custom_error",
+        Pattern: regexp.MustCompile("error"),
+        Respond: "Custom error message for update_growth_data state.",
+    })
+
+    fsm.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
+
+    messages := []string{
+        "2",
+        "Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm",
+        "error",
     }
 
-    // Create finite state machine (FSM) with transitions
-    transitions := []fsm.Transition{
-        {
-            From:   "StateA",
-            Event:  "Event1",
-            To:     "StateB",
-            Action: func() error { return nil },
-        },
-        // Add more transitions as needed
+    for _, message := range messages {
+        response, err := fsm.ProcessMessage("user1", message)
+        if err != nil {
+            fmt.Printf("Error processing message '%s': %v\n", message, err)
+        } else {
+            fmt.Printf("User1: %s\n", message)
+            fmt.Printf("Bot: %s\n", response)
+        }
     }
-
-    globalCallback := func(from fsm.State, event fsm.Event, to fsm.State, params map[string]interface{}) {
-        fmt.Printf("Transition from %v to %v due to event %v\n", from, to, event)
-    }
-
-    fsmInstance, err := fsm.NewFSM("StateA", transitions, globalCallback)
-    if err != nil {
-        fmt.Println("Failed to create FSM:", err)
-        return
-    }
-
-    // Send an event to the FSM
-    event := "Event1"
-    params := make(map[string]interface{})
-    err = fsmInstance.SendEvent(event, params)
-    if err != nil {
-        fmt.Println("Failed to send event to FSM:", err)
-    }
-
-    // Get the current state of the FSM
-    currentState := fsmInstance.GetCurrentState()
-    fmt.Println("Current state:", currentState)
 }
 ```
 

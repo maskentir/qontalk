@@ -10,7 +10,7 @@ Package qontalk provides a unified Go SDK for seamless interaction with both the
 
 ### Overview
 
-The qontalk package combines the functionality of the Qontak and FSM packages to provide a single, comprehensive SDK for both Qontak messaging and Finite State Machine \(FSM\) operations. This package allows you to effortlessly work with Qontak for messaging while simultaneously building, managing, and executing FSMs within your applications.
+The qontalk package combines the functionality of the Qontak and FSM packages to provide a single, comprehensive SDK for both Qontak messaging and Finite State Machine (FSM) operations. This package allows you to effortlessly work with Qontak for messaging while simultaneously building, managing, and executing FSMs within your applications.
 
 ### Qontak Integration
 
@@ -23,7 +23,7 @@ The Qontak integration within qontalk enables you to:
 
 You can utilize these features to enhance your messaging capabilities and communication with customers and agents through Qontak's platform.
 
-### Finite State Machine \\\(FSM\\\) Integration
+### Finite State Machine (FSM) Integration
 
 The FSM integration allows you to create, manage, and execute Finite State Machines within your application. You can define custom states, events, transitions, and callbacks to control the flow of your application based on specific conditions.
 
@@ -46,6 +46,7 @@ package main
 import (
     "fmt"
     "github.com/maskentir/qontalk"
+    "github.com/maskentir/qontalk/fsm"
 )
 
 func main() {
@@ -63,19 +64,46 @@ func main() {
     // Use Qontak features, send messages, etc.
 
     // Create an FSM instance
-    fsm := qontalk.NewFSM(initialState, transitions, globalCallback)
+    fsm := fsm.NewBot("ChatBot")
 
-    // Start the FSM
-    go fsm.Start()
+    fsm.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
+        {Event: "1", Target: "view_growth_history"},
+        {Event: "2", Target: "update_growth_data"},
+    }, []fsm.Rule{}, fsm.Rule{})
 
-    // Send events to trigger FSM state transitions
+    fsm.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
+        {Event: "exit", Target: "start"},
+    }, []fsm.Rule{}, fsm.Rule{
+        Name:    "custom_error",
+        Pattern: regexp.MustCompile("error"),
+        Respond: "Custom error message for view_growth_history state.",
+    })
 
-    // Stop the FSM when done
-    fsm.Stop()
-}
+    fsm.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
+        {Event: "exit", Target: "start"},
+    }, []fsm.Rule{}, fsm.Rule{
+        Name:    "custom_error",
+        Pattern: regexp.MustCompile("error"),
+        Respond: "Custom error message for update_growth_data state.",
+    })
 
-func globalCallback(from qontalk.State, event qontalk.Event, to qontalk.State, params map[string]interface{}) {
-    // Handle FSM state transitions and events
+    fsm.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
+
+    messages := []string{
+        "2",
+        "Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm",
+        "error",
+    }
+
+    for _, message := range messages {
+        response, err := fsm.ProcessMessage("user1", message)
+        if err != nil {
+            fmt.Printf("Error processing message '%s': %v\n", message, err)
+        } else {
+            fmt.Printf("User1: %s\n", message)
+            fmt.Printf("Bot: %s\n", response)
+        }
+    }
 }
 ```
 

@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bug fixes or issue resolutions.
 
+## [1.2.2] - 2023-09-02
+
+### Added
+
+- **FSM Integration**: Integrated a powerful Finite State Machine (FSM) library, enabling efficient management of complex state transitions for chatbot development. 🤖🔄
+
+### Fixed
+
+- Resolved issues related to FSM implementation and interactions. 🐛
+- Improved error handling and overall performance. 🛠️
+
 ## [1.2.1] - 2023-08-29
 
 ### Added
@@ -70,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial implementation of the project.
 
 [Unreleased]: https://github.com/maskentir/qontalk/compare/v1.2.1...HEAD
+[1.2.2]: https://github.com/maskentir/qontalk/releases/tag/v1.2.2
 [1.2.1]: https://github.com/maskentir/qontalk/releases/tag/v1.2.1
 [1.2.0]: https://github.com/maskentir/qontalk/releases/tag/v1.2.0
 [1.1.0]: https://github.com/maskentir/qontalk/releases/tag/v1.1.0

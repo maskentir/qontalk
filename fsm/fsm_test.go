@@ -1,261 +1,71 @@
 package fsm_test
 
 import (
-	"fmt"
+	"regexp"
 	"testing"
-	"time"
 
 	"github.com/maskentir/qontalk/fsm"
 )
 
-func TestFSM_AddTransition(t *testing.T) {
-	initialState := fsm.State("start")
-	transitions := []fsm.Transition{
-		{
-			From:    fsm.State("start"),
-			Event:   fsm.Event("event1"),
-			To:      fsm.State("state1"),
-			Action:  nil,
-			OnError: nil,
-			Timeout: 0,
-		},
-		{
-			From:    fsm.State("state1"),
-			Event:   fsm.Event("event2"),
-			To:      fsm.State("state2"),
-			Action:  nil,
-			OnError: nil,
-			Timeout: 0,
-		},
-	}
+func TestBot_ProcessMessage(t *testing.T) {
+	bot := fsm.NewBot("TestBot")
 
-	fsmInstance, err := fsm.NewFSM(initialState, transitions, nil)
-	if err != nil {
-		t.Errorf("Failed to create FSM: %v", err)
-	}
+	bot.AddState("start", "Hi Ayah Bunda! Balas dengan menu di bawah sesuai kebutuhan Ayah Bunda:\n1 Riwayat tumbuh kembang anak\n2 Update tumbuh kembang anak\nContoh: ketik '1' jika Anda ingin mengetahui data pertumbuhan anak Anda", []fsm.Transition{
+		{Event: "1", Target: "view_growth_history"},
+		{Event: "2", Target: "update_growth_data"},
+	}, []fsm.Rule{}, fsm.Rule{})
 
-	testCases := []struct {
-		from   fsm.State
-		event  fsm.Event
-		exists bool
-	}{
-		{fsm.State("start"), fsm.Event("event1"), true},
-		{fsm.State("state1"), fsm.Event("event2"), true},
-		{fsm.State("start"), fsm.Event("event2"), false},
-		{fsm.State("state1"), fsm.Event("event1"), false},
-		{fsm.State("state2"), fsm.Event("event3"), false},
-	}
-
-	for _, tc := range testCases {
-		// Check if the transitions exist
-		exists, _ := fsmInstance.TransitionExists(tc.from, tc.event)
-		if tc.exists && !exists {
-			t.Errorf("Expected transition to exist, but it does not exist: %v -> %v", tc.from, tc.event)
-		} else if !tc.exists && exists {
-			t.Errorf("Expected transition not to exist, but it exists: %v -> %v", tc.from, tc.event)
-		}
-	}
-}
-
-func TestFSM_RemoveTransition(t *testing.T) {
-	initialState := fsm.State("start")
-	transitions := []fsm.Transition{
-		{
-			From:    fsm.State("start"),
-			Event:   fsm.Event("event1"),
-			To:      fsm.State("state1"),
-			Action:  nil,
-			OnError: nil,
-			Timeout: 0,
-		},
-		{
-			From:    fsm.State("state1"),
-			Event:   fsm.Event("event2"),
-			To:      fsm.State("state2"),
-			Action:  nil,
-			OnError: nil,
-			Timeout: 0,
-		},
-	}
-
-	fsmInstance, err := fsm.NewFSM(initialState, transitions, nil)
-	if err != nil {
-		t.Errorf("Failed to create FSM: %v", err)
-	}
-
-	testCases := []struct {
-		from   fsm.State
-		event  fsm.Event
-		exists bool
-	}{
-		{fsm.State("start"), fsm.Event("event1"), true},
-		{fsm.State("state1"), fsm.Event("event2"), true},
-		{fsm.State("start"), fsm.Event("event2"), false},
-		{fsm.State("state1"), fsm.Event("event1"), false},
-		{fsm.State("state2"), fsm.Event("event3"), false},
-	}
-
-	for _, tc := range testCases {
-		// Remove the transition
-		err := fsmInstance.RemoveTransition(tc.from, tc.event)
-		if err != nil {
-			t.Errorf("Expected no error, but got: %v", err)
-		}
-
-		// Check if the transition exists
-		exists, _ := fsmInstance.TransitionExists(tc.from, tc.event)
-		if tc.exists && exists {
-			t.Errorf("Expected transition from %v to %v via %v to be removed, but it still exists", initialState, tc.from, tc.event)
-		} else if !tc.exists && exists {
-			t.Errorf("Expected transition from %v to %v via %v not to exist, but it still exists", initialState, tc.from, tc.event)
-		}
-	}
-}
-
-func TestFSM_RunWithTimeout(t *testing.T) {
-	initialState := fsm.State("start")
-	transitions := []fsm.Transition{
-		{
-			From:    fsm.State("start"),
-			Event:   fsm.Event("event1"),
-			To:      fsm.State("state1"),
-			Action:  nil,
-			OnError: nil,
-			Timeout: 1, // Reduced timeout to 1 second
-		},
-	}
-
-	fsmInstance, err := fsm.NewFSM(initialState, transitions, nil)
-	if err != nil {
-		t.Errorf("Failed to create FSM: %v", err)
-	}
-
-	// Test the transition with a timeout
-	startTime := time.Now()
-	err = fsmInstance.SendEvent(fsm.Event("event1"), nil)
-	elapsedTime := time.Since(startTime)
-
-	if err != nil {
-		t.Errorf("Expected no error, but got: %v", err)
-	}
-	if currentState := fsmInstance.GetCurrentState(); currentState != fsm.State("state1") {
-		t.Errorf("Expected current state to be 'state1', but got: %v", currentState)
-	}
-	if elapsedTime.Seconds() > 1 {
-		t.Errorf("Expected elapsed time to be less than 1 second, but got: %v seconds", elapsedTime.Seconds())
-	}
-}
-
-func TestFSM_GlobalCallback(t *testing.T) {
-	callbackCalled := 0
-	callback := fsm.Callback(func(from fsm.State, event fsm.Event, to fsm.State, params map[string]interface{}) {
-		fmt.Println("Callback called")
-		callbackCalled++
+	bot.AddState("view_growth_history", "Riwayat tumbuh & kembang anak Ayah Bunda: Nama: {{child_name}} TB: {{tb}} BB: {{bb}} Bulan: {{month}}", []fsm.Transition{
+		{Event: "exit", Target: "start"},
+	}, []fsm.Rule{}, fsm.Rule{
+		Name:    "custom_error",
+		Pattern: regexp.MustCompile("error"),
+		Respond: "Custom error message for view_growth_history state.",
 	})
 
-	fsmInstance, err := fsm.NewFSM(fsm.State("state1"), []fsm.Transition{
+	bot.AddState("update_growth_data", "Silahkan Ayah Bunda memberikan informasi pertumbuhan anak Anda. Ikuti template ini e.g; 'Bulan: Januari Nama anak: Harun Nur Rasyid BB: 30,5 kg TB: 89,1 cm'", []fsm.Transition{
+		{Event: "exit", Target: "start"},
+	}, []fsm.Rule{}, fsm.Rule{
+		Name:    "custom_error",
+		Pattern: regexp.MustCompile("error"),
+		Respond: "Custom error message for update_growth_data state.",
+	})
+
+	bot.AddRuleToState("update_growth_data", "rule_update_growth_data", `Bulan: (?P<month>.+) Nama anak: (?P<child_name>.+) BB: (?P<bb>.+) kg TB: (?P<tb>.+) cm`, "Terimakasih saya sudah mengupdate pertumbuhan {{child_name}} di bulan {{month}} dengan TB {{tb}} cm dan BB {{bb}} kg", nil)
+
+	testCases := []struct {
+		UserID       string
+		Message      string
+		ExpectedResp string
+		ExpectedErr  error
+	}{
 		{
-			From:    fsm.State("state1"),
-			Event:   fsm.Event("event1"),
-			To:      fsm.State("state2"),
-			Action:  func() error { return nil },
-			OnError: fsm.State("errorState"),
-		},
-		// Transisi untuk kembali ke state1 dari state2
-		{
-			From:    fsm.State("state2"),
-			Event:   fsm.Event("event2"),
-			To:      fsm.State("state1"),
-			Action:  func() error { return nil },
-			OnError: fsm.State("errorState"),
-		},
-	}, callback)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := fsmInstance.SendEvent(fsm.Event("event1"), nil); err != nil {
-		t.Fatal(err)
-	}
-
-	// Sleep for a short time to allow transitions to complete.
-	time.Sleep(100 * time.Millisecond)
-
-	currentState := fsmInstance.GetCurrentState()
-	if currentState != fsm.State("state2") {
-		t.Errorf("Expected current state to be 'state2', but got '%v'", currentState)
-	}
-
-	if err := fsmInstance.SendEvent(fsm.Event("event2"), nil); err != nil {
-		t.Fatal(err)
-	}
-
-	// Sleep for a short time to allow transitions to complete.
-	time.Sleep(100 * time.Millisecond)
-
-	currentState = fsmInstance.GetCurrentState()
-	if currentState != fsm.State("state1") {
-		t.Errorf("Expected current state to be 'state1', but got '%v'", currentState)
-	}
-
-	if callbackCalled != 2 {
-		t.Log(currentState)
-		t.Errorf("Expected global callback to be called 2 times, but got %d", callbackCalled)
-	}
-}
-
-func TestFSM_Stop(t *testing.T) {
-	initialState := fsm.State("start")
-	transitions := []fsm.Transition{
-		{
-			From:    fsm.State("start"),
-			Event:   fsm.Event("event1"),
-			To:      fsm.State("state1"),
-			Action:  nil,
-			OnError: nil,
-			Timeout: 0,
+			UserID:       "user1",
+			Message:      "2",
+			ExpectedResp: "Silahkan Ayah Bunda memberikan informasi pertumbuhan anak Anda. Ikuti template ini e.g; 'Bulan: Januari Nama anak: Harun Nur Rasyid BB: 30,5 kg TB: 89,1 cm'",
+			ExpectedErr:  nil,
 		},
 		{
-			From:    fsm.State("state1"),
-			Event:   fsm.Event("event2"),
-			To:      fsm.State("state2"),
-			Action:  nil,
-			OnError: nil,
-			Timeout: 0,
+			UserID:       "user1",
+			Message:      "Bulan: Januari Nama anak: Waode Melawati BB: 33,5 kg TB: 69,1 cm",
+			ExpectedResp: "Terimakasih saya sudah mengupdate pertumbuhan Waode Melawati di bulan Januari dengan TB 69,1 cm dan BB 33,5 kg",
+			ExpectedErr:  nil,
+		},
+		{
+			UserID:       "user1",
+			Message:      "error",
+			ExpectedResp: "Custom error message for update_growth_data state.",
+			ExpectedErr:  nil,
 		},
 	}
 
-	fsmInstance, err := fsm.NewFSM(initialState, transitions, nil)
-	if err != nil {
-		t.Errorf("Failed to create FSM: %v", err)
-	}
-
-	err = fsmInstance.SendEvent(fsm.Event("event1"), nil)
-	if err != nil {
-		t.Errorf("Expected no error, but got: %v", err)
-	}
-	err = fsmInstance.SendEvent(fsm.Event("event2"), nil)
-	if err != nil {
-		t.Errorf("Expected no error, but got: %v", err)
-	}
-
-	go func() {
-		time.Sleep(time.Second)
-		fsmInstance.Stop()
-	}()
-
-	startTime := time.Now()
-	err = fsmInstance.SendEvent(fsm.Event("event2"), nil)
-	elapsedTime := time.Since(startTime)
-
-	if err == nil {
-		t.Errorf("Expected an error after stopping FSM, but got none")
-	}
-	if currentState := fsmInstance.GetCurrentState(); currentState != fsm.State("state2") {
-		t.Errorf("Expected current state to remain 'state2' after stopping FSM, but got: %v", currentState)
-	}
-	if elapsedTime.Seconds() > 1 {
-		t.Errorf("Expected elapsed time to be less than 1 second after stopping FSM, but got: %v seconds", elapsedTime.Seconds())
+	for _, tc := range testCases {
+		resp, err := bot.ProcessMessage(tc.UserID, tc.Message)
+		if err != tc.ExpectedErr {
+			t.Errorf("Expected error %v, got %v", tc.ExpectedErr, err)
+		}
+		if resp != tc.ExpectedResp {
+			t.Errorf("Expected response '%s', got '%s'", tc.ExpectedResp, resp)
+		}
 	}
 }

@@ -1,339 +1,300 @@
-// Package fsm provides a finite state machine (FSM) implementation in Go.
+// Package fsm provides a Finite State Machine (FSM) implementation in Go.
 //
 // # Overview
 //
-// This package allows you to create and manage a finite state machine. It
-// defines types and methods to represent states, events, and transitions
-// within the FSM. You can create an FSM, define transitions between states
-// triggered by events, and execute those transitions.
+// The fsm package allows you to create and manage a Finite State Machine (FSM).
+// It defines types and methods to represent states, transitions, rules, and actions
+// within the FSM. You can create an FSM, define states, transitions between states,
+// and rules to handle user input. The FSM processes user messages and provides
+// responses based on the current state, transitions, and defined rules.
 //
-// # State
+// # Bot
 //
-// The State type represents states within the FSM. States can be of any type
-// as long as they are unique.
+// The Bot struct represents the FSM-based chatbot. It allows you to create and manage
+// a chatbot instance with multiple states, rules, and actions.
 //
-// # Event
+// # FsmState
 //
-// The Event type represents events that can trigger transitions in the FSM.
-// Events can also be of any type, but they should be unique.
-//
-// # Callback
-//
-// Callback is a function type that can be defined to execute custom logic
-// when transitioning from one state to another. It receives information about
-// the previous state, the triggering event, the new state, and optional
-// parameters.
+// The FsmState struct represents a state within the FSM. It defines the state's name,
+// entry message, transitions to other states, rules to handle messages, and a custom error rule.
 //
 // # Transition
 //
-// The Transition struct defines a state transition in the FSM. It specifies
-// the initial state (From), the event that triggers the transition (Event),
-// the target state after the transition (To), an optional action to execute
-// during the transition (Action), an optional state to transition to in case
-// of an error (OnError), and an optional timeout for the transition action.
+// The Transition struct defines a state transition triggered by a specific event. It specifies
+// the event name and the target state after the transition.
 //
-// # FSM
+// # Rule
 //
-// The FSM struct represents the finite state machine itself. You can create
-// an FSM instance using NewFSM, define transitions with AddTransition and
-// RemoveTransition, and send events to trigger transitions using SendEvent.
-// You can also retrieve the current state with GetCurrentState and stop the
-// FSM with Stop.
+// The Rule struct represents a rule for handling user messages within a state. It defines
+// a regular expression pattern to match user input, a response message template, and actions
+// to perform when the rule is triggered.
+//
+// # Action
+//
+// The Action struct represents an action to be performed when a rule is triggered. Currently,
+// the only action type supported is SetVariableAction.
+//
+// # SetVariableAction
+//
+// The SetVariableAction struct represents an action that sets a variable's value in the user's session.
+// It allows you to store and manipulate data during the conversation.
+//
+// # UserSession
+//
+// The UserSession struct represents a user's session with the chatbot. It stores session variables
+// and the current session state.
+//
+// # Getting Started
+//
+// To create and use the chatbot FSM:
+// 1. Create a new bot instance with NewBot.
+// 2. Add states using AddState, specifying their name, entry message, transitions, rules, and custom error rules.
+// 3. Add rules to states using AddRuleToState, defining regular expressions and responses.
+// 4. Process user messages with ProcessMessage, which handles state transitions and rule execution.
 //
 // # Example
 //
-// Below is an example of how to use the fsm package to create a simple FSM:
+// Here's an example of how to use the fsm package to create and use a chatbot FSM:
 //
-//	// Define custom state types.
-//	type MyState int
-//	const (
-//	    StateA MyState = iota
-//	    StateB
-//	    StateC
+//	package main
+//
+//	import (
+//		"fmt"
+//		"fsm" // Replace with the actual package path.
 //	)
 //
-//	// Define custom event types.
-//	type MyEvent int
-//	const (
-//	    EventX MyEvent = iota
-//	    EventY
-//	)
+//	func main() {
+//		bot := fsm.NewBot("ChatBot")
 //
-//	// Define a callback function to execute when transitioning.
-//	callback := func(from fsm.State, event fsm.Event, to fsm.State, params map[string]interface{}) {
-//	    fmt.Printf("Transition from %v to %v due to event %v\n", from, to, event)
+//		bot.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
+//			{Event: "1", Target: "view_growth_history"},
+//			{Event: "2", Target: "update_growth_data"},
+//		}, []fsm.Rule{}, fsm.Rule{})
+//
+//		bot.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
+//			{Event: "exit", Target: "start"},
+//		}, []fsm.Rule{}, fsm.Rule{
+//			Name:    "custom_error",
+//			Pattern: regexp.MustCompile("error"),
+//			Respond: "Custom error message for view_growth_history state.",
+//		})
+//
+//		bot.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
+//			{Event: "exit", Target: "start"},
+//		}, []fsm.Rule{}, fsm.Rule{
+//			Name:    "custom_error",
+//			Pattern: regexp.MustCompile("error"),
+//			Respond: "Custom error message for update_growth_data state.",
+//		})
+//
+//		bot.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
+//
+//		messages := []string{
+//			"2",
+//			"Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm",
+//			"error",
+//		}
+//
+//		for _, message := range messages {
+//			response, err := bot.ProcessMessage("user1", message)
+//			if err != nil {
+//				fmt.Printf("Error processing message '%s': %v\n", message, err)
+//			} else {
+//				fmt.Printf("User1: %s\n", message)
+//				fmt.Printf("Bot: %s\n", response)
+//			}
+//		}
 //	}
-//
-//	// Create an FSM instance with an initial state, transitions, and the callback.
-//	transitions := []fsm.Transition{
-//	    {From: StateA, Event: EventX, To: StateB},
-//	    {From: StateB, Event: EventY, To: StateC},
-//	}
-//
-//	fsmInstance, err := fsm.NewFSM(StateA, transitions, callback)
-//	if err != nil {
-//	    fmt.Println("Error creating FSM:", err)
-//	    return
-//	}
-//
-//	// Send events to trigger transitions.
-//	fsmInstance.SendEvent(EventX, nil)
-//	fsmInstance.SendEvent(EventY, nil)
-//
-//	// Get the current state.
-//	currentState := fsmInstance.GetCurrentState()
-//
-//	// Stop the FSM.
-//	fsmInstance.Stop()
 package fsm
 
 import (
-	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"sync"
-	"time"
 )
 
-// State represents a state in the finite state machine.
-type State interface{}
+// Bot represents the FSM-based chatbot.
+type Bot struct {
+	Name         string
+	CurrentState string
+	UserSess     map[string]*UserSession
+	UserMutex    sync.Mutex
+	FsmStates    map[string]*FsmState
+	GlobalVars   map[string]string
+}
 
-// Event represents an event that can trigger a state transition.
-type Event interface{}
+// FsmState represents a state within the FSM.
+type FsmState struct {
+	Name         string
+	EntryMessage string
+	Transitions  []Transition
+	Rules        []Rule
+	ErrorRule    Rule
+}
 
-// Callback is a function type that is called on state transitions. It receives
-// the previous state, the triggering event, the new state, and optional parameters.
-type Callback func(from State, event Event, to State, params map[string]interface{})
-
-// Transition represents a state transition in the finite state machine.
+// Transition defines a state transition in the FSM.
 type Transition struct {
-	From    State         // The initial state of the transition.
-	Event   Event         // The event that triggers the transition.
-	To      State         // The target state after the transition.
-	Action  func() error  // Optional action to execute during the transition.
-	OnError State         // Optional state to transition to in case of an error.
-	Timeout time.Duration // Optional timeout for the transition action.
+	Event  string
+	Target string
 }
 
-// FSM represents a finite state machine.
-type FSM struct {
-	currentState   State                          // The current state of the FSM.
-	transitions    map[State]map[Event]Transition // Mapping of states and events to transitions.
-	globalCallback Callback                       // Global callback for all state transitions.
-	mutex          sync.Mutex                     // Mutex for thread safety.
-	stopCh         chan struct{}                  // Channel to stop the FSM.
-	wg             sync.WaitGroup                 // WaitGroup for tracking goroutines.
+// Rule represents a rule for handling user messages within a state.
+type Rule struct {
+	Name    string
+	Pattern *regexp.Regexp
+	Respond string
+	Actions []Action
 }
 
-// NewFSM creates a new FSM with the given initial state, transitions, and global callback.
-func NewFSM(initialState State, transitions []Transition, globalCallback Callback) (*FSM, error) {
-	// Validate the globalCallback parameter.
-	if globalCallback == nil {
-		return nil, errors.New("globalCallback cannot be nil")
-	}
-
-	// Create a new FSM instance.
-	fsm := &FSM{
-		currentState:   initialState,
-		transitions:    make(map[State]map[Event]Transition),
-		globalCallback: globalCallback,
-		stopCh:         make(chan struct{}),
-	}
-
-	// Initialize the FSM with the provided transitions.
-	for _, t := range transitions {
-		if _, exists := fsm.transitions[t.From]; !exists {
-			fsm.transitions[t.From] = make(map[Event]Transition)
-		}
-
-		if _, exists := fsm.transitions[t.From][t.Event]; exists {
-			return nil, fmt.Errorf("duplicate transition: state %v already has a transition for event %v", t.From, t.Event)
-		}
-
-		if _, exists := fsm.transitions[t.To]; !exists {
-			fsm.transitions[t.To] = make(map[Event]Transition)
-		}
-
-		fsm.transitions[t.From][t.Event] = t
-	}
-
-	return fsm, nil
+// Action represents an action to be performed when a rule is triggered.
+type Action struct {
+	SetVariable *SetVariableAction
 }
 
-// TransitionExists checks if a transition from a specified state to a specified event exists.
-func (f *FSM) TransitionExists(from State, event Event) (bool, error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	// Check if the from state exists in transitions.
-	fromTransitions, ok := f.transitions[from]
-	if !ok {
-		return false, fmt.Errorf("transition from state '%s' does not exist", from)
-	}
-
-	// Check if the event exists in fromTransitions.
-	_, exists := fromTransitions[event]
-
-	return exists, nil
+// SetVariableAction represents an action that sets a variable's value in the user's session.
+type SetVariableAction struct {
+	Name  string
+	Value string
 }
 
-// SendEvent sends an event to the FSM, triggering a state transition if a valid transition exists.
-func (f *FSM) SendEvent(event Event, params map[string]interface{}) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+// UserSession represents a user's session with the chatbot.
+type UserSession struct {
+	SessionVars  map[string]string
+	SessionState string
+}
 
-	stateMap, exists := f.transitions[f.currentState]
-	if !exists {
-		return errors.New("invalid state")
+// NewBot creates a new chatbot instance with the specified name.
+func NewBot(name string) *Bot {
+	return &Bot{
+		Name:         name,
+		CurrentState: "start",
+		UserSess:     make(map[string]*UserSession),
+		UserMutex:    sync.Mutex{},
+		FsmStates:    make(map[string]*FsmState),
+		GlobalVars:   make(map[string]string),
 	}
+}
 
-	transition, valid := stateMap[event]
-	if !valid {
-		return errors.New("invalid event for the current state")
+// AddState adds a state to the chatbot with the specified parameters.
+func (b *Bot) AddState(name, entryMessage string, transitions []Transition, rules []Rule, errorRule Rule) {
+	state := &FsmState{
+		Name:         name,
+		EntryMessage: entryMessage,
+		Transitions:  transitions,
+		Rules:        rules,
+		ErrorRule:    errorRule,
 	}
+	b.FsmStates[name] = state
+}
 
-	if err := f.validateTransition(transition); err != nil {
+// AddRuleToState adds a rule to a specific state.
+func (b *Bot) AddRuleToState(stateName, name, pattern, respond string, actions []Action) error {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
 		return err
 	}
 
-	if transition.Timeout > 0 {
-		f.runWithTimeout(transition, params)
-	} else if transition.Action != nil {
-		// Run the transition action in a goroutine.
-		go f.runWithAction(transition, params)
+	rule := Rule{
+		Name:    name,
+		Pattern: re,
+		Respond: respond,
+		Actions: actions,
 	}
 
-	if f.currentState == transition.From {
-		// Transition to the new state.
-		f.currentState = transition.To
-
-		// Log the current state after the transition.
-		fmt.Printf("Current state after transition: %v\n", f.currentState)
-
-		return nil
+	state, ok := b.FsmStates[stateName]
+	if !ok {
+		return fmt.Errorf("state %s not found", stateName)
 	}
 
-	return errors.New("invalid transition")
-}
-
-// GetCurrentState returns the current state of the FSM.
-func (f *FSM) GetCurrentState() State {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	return f.currentState
-}
-
-// Stop stops the FSM and waits for all goroutines to complete.
-func (f *FSM) Stop() {
-	close(f.stopCh)
-	f.wg.Wait()
-}
-
-// AddTransition adds a new transition to the FSM.
-func (f *FSM) AddTransition(t Transition) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	if _, exists := f.transitions[t.From]; !exists {
-		f.transitions[t.From] = make(map[Event]Transition)
-	}
-	if _, exists := f.transitions[t.To]; !exists || t.From == t.To {
-		return nil
-	}
-
-	f.transitions[t.From][t.Event] = t
+	state.Rules = append(state.Rules, rule)
+	b.FsmStates[stateName] = state
 	return nil
 }
 
-// RemoveTransition removes a transition from the FSM.
-func (f *FSM) RemoveTransition(from State, event Event) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+// ProcessMessage processes a user's message and returns a response based on the chatbot's current state.
+func (b *Bot) ProcessMessage(userID, message string) (string, error) {
+	b.UserMutex.Lock()
+	defer b.UserMutex.Unlock()
 
-	stateMap, exists := f.transitions[from]
-	if exists {
-		delete(stateMap, event)
-		return nil
+	// Create or retrieve the user's session
+	session, ok := b.UserSess[userID]
+	if !ok {
+		session = &UserSession{
+			SessionVars:  make(map[string]string),
+			SessionState: b.CurrentState,
+		}
+		b.UserSess[userID] = session
 	}
-	return errors.New("invalid state")
-}
 
-// runWithTimeout runs a transition action with a specified timeout.
-func (f *FSM) runWithTimeout(transition Transition, params map[string]interface{}) {
-	f.wg.Add(1)
-	go func() {
-		defer f.wg.Done()
+	state := b.FsmStates[session.SessionState]
 
-		select {
-		case <-time.After(transition.Timeout):
-			f.mutex.Lock()
-			currentState := f.currentState
-			defer f.mutex.Unlock()
+	// Check if there's an error rule for the current state
+	if state.ErrorRule.Pattern != nil && state.ErrorRule.Pattern.MatchString(message) {
+		return state.ErrorRule.Respond, nil
+	}
 
-			if currentState == transition.From {
-				err := transition.Action()
-				if err != nil {
-					f.handleTransitionError(transition, err, params)
-				} else {
-					// Update currentState only if it is still the same as transition.From
-					f.mutex.Lock()
-					if f.currentState == transition.From {
-						f.currentState = transition.To
-					}
-					defer f.mutex.Unlock()
-					f.globalCallback(currentState, transition.Event, transition.To, params)
+	// Check for transitions
+	for _, transition := range state.Transitions {
+		if transition.Event == message {
+			if transition.Target == "start" {
+				session.SessionState = "start"
+			} else {
+				session.SessionState = transition.Target
+			}
+			b.CurrentState = session.SessionState
+			return b.replaceVariables(b.FsmStates[b.CurrentState].EntryMessage, session.SessionVars), nil
+		}
+	}
+
+	// Check rules
+	for _, rule := range state.Rules {
+		match := rule.Pattern.FindStringSubmatch(message)
+		if match != nil {
+			// Set variables in the user's session
+			for i, name := range rule.Pattern.SubexpNames() {
+				if i > 0 && name != "" {
+					session.SessionVars[name] = match[i]
 				}
 			}
-		case <-f.stopCh:
-			return
-		}
-	}()
-}
 
-// runWithAction runs a transition action without a timeout.
-func (f *FSM) runWithAction(transition Transition, params map[string]interface{}) {
-	f.wg.Add(1)
-	go func() {
-		defer f.wg.Done()
-
-		err := transition.Action()
-		if err != nil {
-			f.mutex.Lock()
-			defer f.mutex.Unlock()
-
-			if f.currentState == transition.From {
-				f.handleTransitionError(transition, err, params)
+			// Execute actions
+			for _, action := range rule.Actions {
+				if action.SetVariable != nil {
+					if value, ok := session.SessionVars[action.SetVariable.Value]; ok {
+						session.SessionVars[action.SetVariable.Name] = value
+					}
+				}
 			}
-		} else {
-			f.mutex.Lock()
-			if f.currentState == transition.From {
-				f.currentState = transition.To
+
+			// Replace variables in the response with session values
+			respond := rule.Respond
+			for name, value := range session.SessionVars {
+				placeholder := fmt.Sprintf("{{%s}}", name)
+				respond = strings.ReplaceAll(respond, placeholder, value)
 			}
-			defer f.mutex.Unlock()
 
-			f.globalCallback(transition.From, transition.Event, transition.To, params)
+			return b.replaceVariables(respond, session.SessionVars), nil
 		}
-	}()
+	}
+
+	// Default response when no transitions or rules match
+	return b.replaceVariables(state.EntryMessage, session.SessionVars), nil
 }
 
-// handleTransitionError handles a transition error, including transitioning to an error state and invoking the global callback.
-func (f *FSM) handleTransitionError(transition Transition, err error, params map[string]interface{}) {
-	if transition.OnError != nil {
-		f.currentState = transition.OnError
-	}
-	f.globalCallback(transition.From, transition.Event, transition.OnError, params)
-}
-
-// validateTransition validates whether a transition is valid for the current state and event.
-func (f *FSM) validateTransition(transition Transition) error {
-	stateMap, exists := f.transitions[f.currentState]
-	if !exists {
-		return errors.New("invalid state")
+// replaceVariables replaces variables in the text with their session values and global variables.
+func (b *Bot) replaceVariables(text string, vars map[string]string) string {
+	// Replace variables in the text with session values
+	for name, value := range vars {
+		placeholder := fmt.Sprintf("{{%s}}", name)
+		text = strings.ReplaceAll(text, placeholder, value)
 	}
 
-	if _, valid := stateMap[transition.Event]; !valid {
-		return errors.New("invalid event for the current state")
+	// Replace bot variables with global values
+	for name, value := range b.GlobalVars {
+		placeholder := fmt.Sprintf("{{bot.%s}}", name)
+		text = strings.ReplaceAll(text, placeholder, value)
 	}
 
-	return nil
+	return text
 }

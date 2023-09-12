@@ -1,4 +1,5 @@
 // Package fsm provides a Finite State Machine (FSM) implementation in Go.
+//
 // # Overview
 //
 // The fsm package allows you to create and manage a Finite State Machine (FSM).
@@ -113,18 +114,23 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Bot represents the FSM-based chatbot.
 type Bot struct {
-	Name           string
-	CurrentState   string
-	UserSess       map[string]*UserSession
-	UserMutex      sync.Mutex
-	FsmStates      map[string]*FsmState
-	GlobalVars     map[string]string
-	StateListeners map[string]ListenerFunc
-	RuleListeners  map[string]ListenerFunc
+	Name             string
+	CurrentState     string
+	UserSessions     map[string]*UserSession
+	UserMutex        sync.Mutex
+	FsmStates        map[string]*FsmState
+	GlobalVars       map[string]string
+	StateListeners   map[string]ListenerFunc
+	RuleListeners    map[string]ListenerFunc
+	SessionTimeout   time.Duration
+	SessionCleanup   time.Duration
+	ConcurrentAccess bool
+	ErrorLogger      func(error)
 }
 
 // FsmState represents a state within the FSM.
@@ -133,7 +139,6 @@ type FsmState struct {
 	EntryMessage string
 	Transitions  []Transition
 	Rules        []Rule
-	ErrorRule    Rule
 }
 
 // Transition defines a state transition in the FSM.
@@ -144,10 +149,11 @@ type Transition struct {
 
 // Rule represents a rule for handling user messages within a state.
 type Rule struct {
-	Name    string
-	Pattern *regexp.Regexp
-	Respond string
-	Actions []Action
+	Name      string
+	Pattern   *regexp.Regexp
+	Respond   string
+	Actions   []Action
+	ErrorRule *ErrorRule
 }
 
 // Action represents an action to be performed when a rule is triggered.
@@ -161,54 +167,131 @@ type SetVariableAction struct {
 	Value string
 }
 
+// ErrorRule represents an error rule for handling specific errors.
+type ErrorRule struct {
+	Name    string
+	Pattern *regexp.Regexp
+	Respond string
+	Actions []Action
+}
+
+// VariableMap is a type alias for a map of string variables.
 type VariableMap map[string]string
 
-type ListenerFunc func(userID string, message string, session *UserSession)
+// ListenerFunc represents a listener function.
+type ListenerFunc func(userID string, message string, session *UserSession, bot *Bot)
 
 // UserSession represents a user's session with the chatbot.
 type UserSession struct {
-	SessionVars  map[string]string
+	SessionVars  VariableMap
 	SessionState string
+	LastActive   time.Time
 }
 
-// NewBot creates a new chatbot instance with the specified name.
-func NewBot(name string) *Bot {
-	return &Bot{
-		Name:           name,
-		CurrentState:   "start",
-		UserSess:       make(map[string]*UserSession),
-		UserMutex:      sync.Mutex{},
-		FsmStates:      make(map[string]*FsmState),
-		GlobalVars:     make(map[string]string),
-		StateListeners: make(map[string]ListenerFunc),
-		RuleListeners:  make(map[string]ListenerFunc),
+// cleanupSessions periodically cleans up inactive user sessions.
+func (b *Bot) cleanupSessions() {
+	for {
+		time.Sleep(b.SessionCleanup)
+
+		b.UserMutex.Lock()
+		for userID, session := range b.UserSessions {
+			fmt.Println("since", session.LastActive, b.SessionTimeout)
+			if time.Since(session.LastActive) > b.SessionTimeout {
+				delete(b.UserSessions, userID)
+			}
+		}
+		b.UserMutex.Unlock()
 	}
 }
 
-// AddState adds a state to the chatbot with the specified parameters.
-func (b *Bot) AddState(name, entryMessage string, transitions []Transition, rules []Rule, errorRule Rule) {
+// NewBot creates a new chatbot instance with the specified name and options.
+// It initializes the chatbot with default values for session timeout, session cleanup,
+// and concurrent access handling unless custom options are provided.
+func NewBot(name string, options ...Option) *Bot {
+	bot := &Bot{
+		Name:             name,
+		CurrentState:     "start",
+		UserSessions:     make(map[string]*UserSession),
+		UserMutex:        sync.Mutex{},
+		FsmStates:        make(map[string]*FsmState),
+		GlobalVars:       make(map[string]string),
+		StateListeners:   make(map[string]ListenerFunc),
+		RuleListeners:    make(map[string]ListenerFunc),
+		SessionTimeout:   30 * time.Minute, // Default session timeout
+		SessionCleanup:   1 * time.Hour,    // Default session cleanup interval
+		ConcurrentAccess: false,            // Default concurrent access handling is disabled
+	}
+
+	// Apply options
+	for _, option := range options {
+		option(bot)
+	}
+
+	// Start session cleanup timer
+	if bot.SessionCleanup > 0 {
+		go bot.cleanupSessions()
+	}
+
+	return bot
+}
+
+// Option represents an option to configure the chatbot.
+type Option func(*Bot)
+
+// WithSessionCleanup sets the session cleanup interval for removing inactive sessions.
+func WithSessionCleanup(interval time.Duration) Option {
+	return func(b *Bot) {
+		b.SessionCleanup = interval
+	}
+}
+
+// WithSessionTimeout sets the session timeout interval for removing inactive sessions.
+func WithSessionTimeout(interval time.Duration) Option {
+	return func(b *Bot) {
+		b.SessionTimeout = interval
+	}
+}
+
+// WithConcurrentAccess enables or disables concurrent access handling.
+func WithConcurrentAccess(enable bool) Option {
+	return func(b *Bot) {
+		b.ConcurrentAccess = enable
+	}
+}
+
+// WithErrorLogger sets the error logger function for handling errors.
+func WithErrorLogger(logger func(error)) Option {
+	return func(b *Bot) {
+		b.ErrorLogger = logger
+	}
+}
+
+// Example usage of adding a state to the chatbot:
+//
+//	bot.AddState("myState", "Welcome to my state!", transitions, rules)
+func (b *Bot) AddState(name, entryMessage string, transitions []Transition, rules []Rule) {
 	state := &FsmState{
 		Name:         name,
 		EntryMessage: entryMessage,
 		Transitions:  transitions,
 		Rules:        rules,
-		ErrorRule:    errorRule,
 	}
 	b.FsmStates[name] = state
 }
 
 // AddRuleToState adds a rule to a specific state.
-func (b *Bot) AddRuleToState(stateName, name, pattern, respond string, actions []Action) error {
+func (b *Bot) AddRuleToState(stateName, name, pattern, respond string, actions []Action, errorRule *ErrorRule) error {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return err
 	}
 
 	rule := Rule{
-		Name:    name,
-		Pattern: re,
-		Respond: respond,
-		Actions: actions,
+		Name:      name,
+		Pattern:   re,
+		Respond:   respond,
+		Actions:   actions,
+		ErrorRule: errorRule,
 	}
 
 	state, ok := b.FsmStates[stateName]
@@ -232,23 +315,32 @@ func (b *Bot) AddListenerToRule(ruleName string, listener ListenerFunc) {
 }
 
 // ProcessMessage processes a user's message and returns a response based on the chatbot's current state.
+// It takes the user's ID and message as input and returns a response message or an error.
 func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 	b.UserMutex.Lock()
 	defer b.UserMutex.Unlock()
 
-	session, ok := b.UserSess[userID]
+	session, ok := b.UserSessions[userID]
 	if !ok {
 		session = &UserSession{
 			SessionVars:  make(VariableMap),
 			SessionState: b.CurrentState,
 		}
-		b.UserSess[userID] = session
+		b.UserSessions[userID] = session
 	}
 
-	state := b.FsmStates[session.SessionState]
+	session.LastActive = time.Now()
+	state, ok := b.FsmStates[session.SessionState]
+	if !ok {
+		// Handle error, misconfigured state, or default behavior
+		return "State not found", nil
+	}
 
-	if state.ErrorRule.Pattern != nil && state.ErrorRule.Pattern.MatchString(message) {
-		return state.ErrorRule.Respond, nil
+	// Check for error rules first at the rule level
+	for _, rule := range state.Rules {
+		if rule.ErrorRule != nil && rule.ErrorRule.Pattern != nil && rule.ErrorRule.Pattern.MatchString(message) {
+			return rule.ErrorRule.Respond, nil
+		}
 	}
 
 	for _, transition := range state.Transitions {
@@ -292,19 +384,18 @@ func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 				}
 
 				respond := rule.Respond
-				for name, value := range session.SessionVars {
-					placeholder := fmt.Sprintf("{{%s}}", name)
-					respond = strings.ReplaceAll(respond, placeholder, value)
-				}
+
+				// Replace variables in the response message with session variables
+				respond = b.replaceVariables(respond, session.SessionVars)
 
 				// Call state listener if available
 				if listener, ok := b.StateListeners[state.Name]; ok {
-					listener(userID, message, session)
+					listener(userID, message, session, b)
 				}
 
 				// Call rule listener if available
 				if listener, ok := b.RuleListeners[rule.Name]; ok {
-					listener(userID, message, session)
+					listener(userID, message, session, b)
 				}
 
 				respChan <- respond
@@ -346,4 +437,19 @@ func (b *Bot) replaceVariables(text string, vars VariableMap) string {
 	}
 
 	return text
+}
+
+// MoveToState allows moving the user to a specified state.
+func (b *Bot) MoveToState(userID, newState string) {
+	session, ok := b.UserSessions[userID]
+	if !ok {
+		session = &UserSession{
+			SessionVars:  make(VariableMap),
+			SessionState: b.CurrentState,
+		}
+		b.UserSessions[userID] = session
+	}
+
+	session.SessionState = newState
+	b.CurrentState = newState
 }

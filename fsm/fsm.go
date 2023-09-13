@@ -337,7 +337,7 @@ func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 	}
 
 	if session.ErrorRulesChan == nil {
-		session.ErrorRulesChan = make(chan map[string]map[string]bool, 1)
+		session.ErrorRulesChan = make(chan map[string]map[string]bool)
 	}
 
 	stopErrorRules := make(chan struct{})
@@ -382,7 +382,7 @@ func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 	for _, rule := range state.Rules {
 		wg.Add(1)
 
-		go func(rule Rule, sessionCopy *UserSession) {
+		go func(rule Rule) {
 			defer wg.Done()
 
 			match := rule.Pattern.FindStringSubmatch(message)
@@ -410,16 +410,19 @@ func (b *Bot) ProcessMessage(userID, message string) (string, error) {
 				b.handleRuleListener(rule.Name, userID, message, session)
 
 				for _, errorRule := range rule.ErrorRules {
-					if sessionCopy.ErrorRulesState != nil && sessionCopy.ErrorRulesState[state.Name][errorRule.Error.Error()] {
-						b.handleError(errorRule.Respond, userID, sessionCopy)
+					if session.ErrorRulesState != nil && session.ErrorRulesState[state.Name][errorRule.Error.Error()] {
+						b.handleError(errorRule.Respond, userID, session)
 						respChan <- errorRule.Respond
+
+						delete(session.ErrorRulesState, state.Name)
 						return
 					}
+
 				}
 
 				respChan <- respond
 			}
-		}(rule, session)
+		}(rule)
 	}
 
 	go func() {

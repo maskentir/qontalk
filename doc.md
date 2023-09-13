@@ -44,32 +44,34 @@ The following example demonstrates how to leverage the qontalk package to intera
 package main
 
 import (
-    "fmt"
-    "github.com/maskentir/qontalk"
-    "github.com/maskentir/qontalk/fsm"
+	"fmt"
+	"regexp"
+
+	"github.com/maskentir/qontalk"
+	"github.com/maskentir/qontalk/fsm"
 )
 
 func main() {
-    // Create a QontalkSDK instance
-    sdk := qontalk.NewQontalkSDKBuilder().
-        WithClientCredentials("your-username", "your-password", "your-grant-type", "your-client-id", "your-client-secret").
-        Build()
+	// Create a QontalkSDK instance
+	sdk := qontalk.NewQontalkSDKBuilder().
+		WithClientCredentials("your-username", "your-password", "your-grant-type", "your-client-id", "your-client-secret").
+		Build()
 
-    // Authenticate with Qontak
-    if err := sdk.Authenticate(); err != nil {
-        fmt.Println("Authentication failed:", err)
-        return
-    }
+	// Authenticate with Qontak
+	if err := sdk.Authenticate(); err != nil {
+		fmt.Println("Authentication failed:", err)
+		return
+	}
 
-    // Use Qontak features, send messages, etc.
+	// Use Qontak features, send messages, etc.
 
- 	// Create a new chatbot instance
+	// Create a new chatbot instance
 	bot := fsm.NewBot("MyChatbot")
 
 	// Define states and transitions
 	transitions := []fsm.Transition{
-	    {Event: "start", Target: "initial"},
-	    {Event: "continue", Target: "ongoing"},
+		{Event: "start", Target: "initial"},
+		{Event: "continue", Target: "ongoing"},
 	}
 
 	bot.AddState("initial", "Welcome to the chatbot!", transitions)
@@ -78,9 +80,9 @@ func main() {
 	rulePattern := "hello"
 	regexPattern := fmt.Sprintf("(?i)%s", regexp.QuoteMeta(rulePattern))
 	rule := fsm.Rule{
-	    Name:    "HelloRule",
-	    Pattern: regexp.MustCompile(regexPattern),
-	    Respond: "Hello! How can I assist you?",
+		Name:    "HelloRule",
+		Pattern: regexp.MustCompile(regexPattern),
+		Respond: "Hello! How can I assist you?",
 	}
 
 	bot.AddRuleToState("initial", rule.Name, regexPattern, rule.Respond, nil, nil)
@@ -88,8 +90,8 @@ func main() {
 	// Process user messages
 	response, err := bot.ProcessMessage("user123", "hello")
 	if err != nil {
-	    fmt.Println("Error:", err)
-	    return
+		fmt.Println("Error:", err)
+		return
 	}
 
 	fmt.Println("Bot Response:", response)

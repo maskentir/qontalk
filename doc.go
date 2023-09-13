@@ -40,69 +40,50 @@
 // The following example demonstrates how to leverage the qontalk package to interact
 // with both Qontak and FSM functionalities:
 //
-//	package main
-//
-//	import (
-//	    "fmt"
-//	    "github.com/maskentir/qontalk"
-//	    "github.com/maskentir/qontalk/fsm"
-//	)
-//
-//	func main() {
-//	    // Create a QontalkSDK instance
-//	    sdk := qontalk.NewQontalkSDKBuilder().
-//	        WithClientCredentials("your-username", "your-password", "your-grant-type", "your-client-id", "your-client-secret").
-//	        Build()
-//
-//	    // Authenticate with Qontak
-//	    if err := sdk.Authenticate(); err != nil {
-//	        fmt.Println("Authentication failed:", err)
-//	        return
-//	    }
-//
-//	    // Use Qontak features, send messages, etc.
-//
-//	    // Create an FSM instance
-//	    fsm := fsm.NewBot("ChatBot")
-//
-//	    fsm.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
-//	        {Event: "1", Target: "view_growth_history"},
-//	        {Event: "2", Target: "update_growth_data"},
-//	    }, []fsm.Rule{}, fsm.Rule{})
-//
-//	    fsm.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
-//	        {Event: "exit", Target: "start"},
-//	    }, []fsm.Rule{}, fsm.Rule{
-//	        Name:    "custom_error",
-//	        Pattern: regexp.MustCompile("error"),
-//	        Respond: "Custom error message for view_growth_history state.",
-//	    })
-//
-//	    fsm.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
-//	        {Event: "exit", Target: "start"},
-//	    }, []fsm.Rule{}, fsm.Rule{
-//	        Name:    "custom_error",
-//	        Pattern: regexp.MustCompile("error"),
-//	        Respond: "Custom error message for update_growth_data state.",
-//	    })
-//
-//	    fsm.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
-//
-//	    messages := []string{
-//	        "2",
-//	        "Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm",
-//	        "error",
-//	    }
-//
-//	    for _, message := range messages {
-//	        response, err := fsm.ProcessMessage("user1", message)
-//	        if err != nil {
-//	            fmt.Printf("Error processing message '%s': %v\n", message, err)
-//	        } else {
-//	            fmt.Printf("User1: %s\n", message)
-//	            fmt.Printf("Bot: %s\n", response)
-//	        }
-//	    }
+// func main() {
+// 	// Create a QontalkSDK instance
+// 	sdk := qontalk.NewQontalkSDKBuilder().
+// 		WithClientCredentials("your-username", "your-password", "your-grant-type", "your-client-id", "your-client-secret").
+// 		Build()
+
+// 	// Authenticate with Qontak
+// 	if err := sdk.Authenticate(); err != nil {
+// 		fmt.Println("Authentication failed:", err)
+// 		return
+// 	}
+
+// 	// Use Qontak features, send messages, etc.
+
+// 	// Create a new chatbot instance
+// 	bot := fsm.NewBot("MyChatbot")
+
+// 	// Define states and transitions
+// 	transitions := []fsm.Transition{
+// 		{Event: "start", Target: "initial"},
+// 		{Event: "continue", Target: "ongoing"},
+// 	}
+
+// 	bot.AddState("initial", "Welcome to the chatbot!", transitions)
+
+// 	// Define rules and actions
+// 	rulePattern := "hello"
+// 	regexPattern := fmt.Sprintf("(?i)%s", regexp.QuoteMeta(rulePattern))
+// 	rule := fsm.Rule{
+// 		Name:    "HelloRule",
+// 		Pattern: regexp.MustCompile(regexPattern),
+// 		Respond: "Hello! How can I assist you?",
+// 	}
+
+// 	bot.AddRuleToState("initial", rule.Name, regexPattern, rule.Respond, nil, nil)
+
+// 	// Process user messages
+// 	response, err := bot.ProcessMessage("user123", "hello")
+// 	if err != nil {
+// 		fmt.Println("Error:", err)
+// 		return
+// 	}
+
+//		fmt.Println("Bot Response:", response)
 //	}
 //
 // This example showcases how you can use the qontalk package to work with Qontak

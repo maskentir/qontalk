@@ -75,47 +75,36 @@ func main() {
 
     // Use Qontak features, send messages, etc.
 
-    // Create an FSM instance
-    fsm := fsm.NewBot("ChatBot")
+	// Create a new chatbot instance
+	bot := fsm.NewBot("MyChatbot")
 
-    fsm.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
-        {Event: "1", Target: "view_growth_history"},
-        {Event: "2", Target: "update_growth_data"},
-    }, []fsm.Rule{}, fsm.Rule{})
+	// Define states and transitions
+	transitions := []fsm.Transition{
+	    {Event: "start", Target: "initial"},
+	    {Event: "continue", Target: "ongoing"},
+	}
 
-    fsm.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
-        {Event: "exit", Target: "start"},
-    }, []fsm.Rule{}, fsm.Rule{
-        Name:    "custom_error",
-        Pattern: regexp.MustCompile("error"),
-        Respond: "Custom error message for view_growth_history state.",
-    })
+	bot.AddState("initial", "Welcome to the chatbot!", transitions)
 
-    fsm.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
-        {Event: "exit", Target: "start"},
-    }, []fsm.Rule{}, fsm.Rule{
-        Name:    "custom_error",
-        Pattern: regexp.MustCompile("error"),
-        Respond: "Custom error message for update_growth_data state.",
-    })
+	// Define rules and actions
+	rulePattern := "hello"
+	regexPattern := fmt.Sprintf("(?i)%s", regexp.QuoteMeta(rulePattern))
+	rule := fsm.Rule{
+	    Name:    "HelloRule",
+	    Pattern: regexp.MustCompile(regexPattern),
+	    Respond: "Hello! How can I assist you?",
+	}
 
-    fsm.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
+	bot.AddRuleToState("initial", rule.Name, regexPattern, rule.Respond, nil, nil)
 
-    messages := []string{
-        "2",
-        "Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm",
-        "error",
-    }
+	// Process user messages
+	response, err := bot.ProcessMessage("user123", "hello")
+	if err != nil {
+	    fmt.Println("Error:", err)
+	    return
+	}
 
-    for _, message := range messages {
-        response, err := fsm.ProcessMessage("user1", message)
-        if err != nil {
-            fmt.Printf("Error processing message '%s': %v\n", message, err)
-        } else {
-            fmt.Printf("User1: %s\n", message)
-            fmt.Printf("Bot: %s\n", response)
-        }
-    }
+	fmt.Println("Bot Response:", response)
 }
 ```
 

@@ -199,6 +199,8 @@ func (b *Bot) cleanupSessions() {
 			for userID, session := range b.UserSessions {
 				if time.Since(session.LastActive) > b.SessionTimeout {
 					delete(b.UserSessions, userID)
+
+					b.CurrentState = "start"
 				}
 			}
 			b.UserMutex.Unlock()

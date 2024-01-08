@@ -116,8 +116,8 @@
 //	    WithMessageTemplateID("template123").
 //	    WithChannelIntegrationID("integration456").
 //	    WithLanguage("en").
-//	    AddHeaderParam("url", "https://example.com/sample.pdf").
-//	    AddHeaderParam("filename", "sample.pdf").
+//	    AddDocumentParam("url", "https://example.com/sample.pdf").
+//	    AddDocumentParam("filename", "sample.pdf").
 //	    AddBodyParam("1", "Lorem Ipsum", "customer_name").
 //	    AddButton(qontak.ButtonMessage{Index: "0", Type: "url", Value: "paymentUniqNumber"}).
 //	    Build()
@@ -299,8 +299,8 @@ func (sdk *QontakSDK) SendWhatsAppMessage(params WhatsAppMessage) error {
 //	WithMessageTemplateID("template123").
 //	WithChannelIntegrationID("integration456").
 //	WithLanguage("en").
-//	AddHeaderParam("url", "https://example.com/sample.pdf").
-//	AddHeaderParam("filename", "sample.pdf").
+//	AddDocumentParam("url", "https://example.com/sample.pdf").
+//	AddDocumentParam("filename", "sample.pdf").
 //	AddBodyParam("1", "Lorem Ipsum", "customer_name").
 //	AddButton(ButtonMessage{Index: "0", Type: "url", Value: "paymentUniqNumber"}).
 //	Build()
@@ -323,11 +323,19 @@ func (sdk *QontakSDK) SendDirectWhatsAppBroadcast(params DirectWhatsAppBroadcast
 		},
 	}
 
-	// Add "header" only if it exists.
-	if len(params.HeaderParams) > 0 {
+	// Add "document header" only if it exists.
+	if len(params.DocumentParams) > 0 {
 		data["parameters"].(map[string]interface{})["header"] = map[string]interface{}{
 			"format": "DOCUMENT",
-			"params": convertKeyValueToMap(params.HeaderParams),
+			"params": convertKeyValueToMap(params.DocumentParams),
+		}
+	}
+
+	// Add "image header" only if it exists.
+	if len(params.ImageParams) > 0 {
+		data["parameters"].(map[string]interface{})["header"] = map[string]interface{}{
+			"format": "IMAGE",
+			"params": convertKeyValueToMap(params.ImageParams),
 		}
 	}
 

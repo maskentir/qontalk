@@ -246,8 +246,8 @@ func TestQontakSDK(t *testing.T) {
 					WithMessageTemplateID("template123").
 					WithChannelIntegrationID("integration456").
 					WithLanguage("en").
-					AddHeaderParam("url", "https://example.com/sample.pdf").
-					AddHeaderParam("filename", "sample.pdf").
+					AddDocumentParam("url", "https://example.com/sample.pdf").
+					AddDocumentParam("filename", "sample.pdf").
 					AddBodyParam("1", "Lorem Ipsum", "customer_name").
 					AddButton(qontak.ButtonMessage{Index: "0", Type: "url", Value: "paymentUniqNumber"}).
 					Build()
@@ -268,8 +268,8 @@ func TestQontakSDK(t *testing.T) {
 					WithMessageTemplateID("template123").
 					WithChannelIntegrationID("integration456").
 					WithLanguage("en").
-					AddHeaderParam("url", "https://example.com/sample.pdf").
-					AddHeaderParam("filename", "sample.pdf").
+					AddDocumentParam("url", "https://example.com/sample.pdf").
+					AddDocumentParam("filename", "sample.pdf").
 					AddBodyParam("1", "Lorem Ipsum", "customer_name").
 					AddButton(qontak.ButtonMessage{Index: "0", Type: "url", Value: "paymentUniqNumber"}).
 					Build()

@@ -89,7 +89,8 @@ type DirectWhatsAppBroadcast struct {
 	MessageTemplateID    string            `json:"message_template_id"`
 	ChannelIntegrationID string            `json:"channel_integration_id"`
 	Language             map[string]string `json:"language"`
-	HeaderParams         []KeyValue        `json:"header"`
+	DocumentParams       []KeyValue        `json:"header"`
+	ImageParams          []KeyValue        `json:"header"`
 	BodyParams           []KeyValueText    `json:"body"`
 	Buttons              []ButtonMessage   `json:"buttons"`
 }

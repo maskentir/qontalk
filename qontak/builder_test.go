@@ -185,8 +185,8 @@ func TestBuilders(t *testing.T) {
 				WithMessageTemplateID("template123").
 				WithChannelIntegrationID("integration456").
 				WithLanguage("en").
-				AddHeaderParam("url", "https://example.com/sample.pdf").
-				AddHeaderParam("filename", "sample.pdf").
+				AddDocumentParam("url", "https://example.com/sample.pdf").
+				AddDocumentParam("filename", "sample.pdf").
 				AddBodyParam("1", "Lorem Ipsum", "customer_name").
 				AddButton(qontak.ButtonMessage{Index: "0", Type: "url", Value: "paymentUniqNumber"}).
 				Build(),
@@ -196,7 +196,7 @@ func TestBuilders(t *testing.T) {
 				MessageTemplateID:    "template123",
 				ChannelIntegrationID: "integration456",
 				Language:             map[string]string{"code": "en"},
-				HeaderParams: []qontak.KeyValue{
+				DocumentParams: []qontak.KeyValue{
 					{Key: "url", Value: "https://example.com/sample.pdf"},
 					{Key: "filename", Value: "sample.pdf"},
 				},

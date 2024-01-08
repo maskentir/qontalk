@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/maskentir/qontalk/fsm"
 	"github.com/maskentir/qontalk/qontak"
@@ -24,25 +23,17 @@ func exampleFSM() {
 	bot.AddState("start", "Hi there! Reply with one of the following options:\n1 View growth history\n2 Update growth data\nExample: type '1' if you want to view your child's growth history.", []fsm.Transition{
 		{Event: "1", Target: "view_growth_history"},
 		{Event: "2", Target: "update_growth_data"},
-	}, []fsm.Rule{}, fsm.Rule{})
+	})
 
 	bot.AddState("view_growth_history", "Growth history of your child: Name: {{child_name}} Height: {{height}} Weight: {{weight}} Month: {{month}}", []fsm.Transition{
 		{Event: "exit", Target: "start"},
-	}, []fsm.Rule{}, fsm.Rule{
-		Name:    "custom_error",
-		Pattern: regexp.MustCompile("error"),
-		Respond: "Custom error message for view_growth_history state.",
 	})
 
 	bot.AddState("update_growth_data", "Please provide the growth information for your child. Use this template e.g., 'Month: January Child's name: John Weight: 30.5 kg Height: 89.1 cm'", []fsm.Transition{
 		{Event: "exit", Target: "start"},
-	}, []fsm.Rule{}, fsm.Rule{
-		Name:    "custom_error",
-		Pattern: regexp.MustCompile("error"),
-		Respond: "Custom error message for update_growth_data state.",
 	})
 
-	bot.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} and weight {{weight}}", nil)
+	bot.AddRuleToState("update_growth_data", "rule_update_growth_data", `Month: (?P<month>.+) Child's name: (?P<child_name>.+) Weight: (?P<weight>.+) kg Height: (?P<height>.+) cm`, "Thank you for updating {{child_name}}'s growth in {{month}} with height {{height}} cm and weight {{weight}} kg", nil, nil)
 
 	messages := []string{
 		"2",
@@ -123,8 +114,8 @@ func exampleQontak() {
 		WithMessageTemplateID("template123").
 		WithChannelIntegrationID("integration456").
 		WithLanguage("en").
-		AddHeaderParam("url", "https://example.com/sample.pdf").
-		AddHeaderParam("filename", "sample.pdf").
+		AddDocumentParam("url", "https://example.com/sample.pdf").
+		AddDocumentParam("filename", "sample.pdf").
 		AddBodyParam("1", "Lorem Ipsum", "customer_name").
 		AddButton(qontak.ButtonMessage{Index: "0", Type: "url", Value: "paymentUniqNumber"}).
 		Build()

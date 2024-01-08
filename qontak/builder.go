@@ -288,10 +288,11 @@ func (b *WhatsAppMessageBuilder) Build() WhatsAppMessage {
 // NewDirectWhatsAppBroadcastBuilder creates a new instance of DirectWhatsAppBroadcastBuilder.
 func NewDirectWhatsAppBroadcastBuilder() *DirectWhatsAppBroadcastBuilder {
 	return &DirectWhatsAppBroadcastBuilder{
-		headerParams: make([]KeyValue, 0),
-		bodyParams:   make([]KeyValueText, 0),
-		buttons:      make([]ButtonMessage, 0),
-		language:     make(map[string]string),
+		documentParams: make([]KeyValue, 0),
+		imageParams:    make([]KeyValue, 0),
+		bodyParams:     make([]KeyValueText, 0),
+		buttons:        make([]ButtonMessage, 0),
+		language:       make(map[string]string),
 	}
 }
 
@@ -301,7 +302,8 @@ type DirectWhatsAppBroadcastBuilder struct {
 	toNumber             string
 	messageTemplateID    string
 	channelIntegrationID string
-	headerParams         []KeyValue
+	documentParams       []KeyValue
+	imageParams          []KeyValue
 	bodyParams           []KeyValueText
 	buttons              []ButtonMessage
 	language             map[string]string
@@ -337,9 +339,15 @@ func (b *DirectWhatsAppBroadcastBuilder) WithLanguage(languageCode string) *Dire
 	return b
 }
 
-// AddHeaderParam adds a key-value pair to the header parameters.
-func (b *DirectWhatsAppBroadcastBuilder) AddHeaderParam(key, value string) *DirectWhatsAppBroadcastBuilder {
-	b.headerParams = append(b.headerParams, KeyValue{Key: key, Value: value})
+// AddDocumentParam adds a key-value pair to the header parameters.
+func (b *DirectWhatsAppBroadcastBuilder) AddDocumentParam(key, value string) *DirectWhatsAppBroadcastBuilder {
+	b.documentParams = append(b.documentParams, KeyValue{Key: key, Value: value})
+	return b
+}
+
+// AddImageParam adds a key-value pair to the header parameters.
+func (b *DirectWhatsAppBroadcastBuilder) AddImageParam(key, value string) *DirectWhatsAppBroadcastBuilder {
+	b.imageParams = append(b.imageParams, KeyValue{Key: key, Value: value})
 	return b
 }
 
@@ -363,7 +371,8 @@ func (b *DirectWhatsAppBroadcastBuilder) Build() DirectWhatsAppBroadcast {
 		MessageTemplateID:    b.messageTemplateID,
 		ChannelIntegrationID: b.channelIntegrationID,
 		Language:             b.language,
-		HeaderParams:         b.headerParams,
+		DocumentParams:       b.documentParams,
+		ImageParams:          b.imageParams,
 		BodyParams:           b.bodyParams,
 		Buttons:              b.buttons,
 	}
